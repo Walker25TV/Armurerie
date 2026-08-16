@@ -242,29 +242,35 @@ app.get('/api/discord-user/:id', async (req, res) => {
       }
     }
 
-    // 4. Détection de la Spécialité
-    const SPE_KEYWORDS = [
-      "PJ", "BAC", "GSP", "BRR", "USL", "SI", "BRI", "GIGN", "RAID", 
-      "CRS", "FORMATEUR", "FTSI", "MOTORISEE", "BAC NUIT"
-    ];
+    // 4. Détection de la Spécialité (Détection prioritaire + Nettoyage émojis)
+    let specialite = "Aucune";
+    const upperRawName = rawDisplayName.toUpperCase();
+    const joinedRoles = userRoleNames.join(" ").toUpperCase();
 
-    let specialite = userRoleNames.find(r => 
-      SPE_KEYWORDS.some(k => r.toUpperCase().includes(k))
-    );
-
-    if (!specialite) {
-      const upperName = rawDisplayName.toUpperCase();
-      const foundSpe = SPE_KEYWORDS.find(k => upperName.includes(k));
-      if (foundSpe) {
-        specialite = foundSpe;
+    if (joinedRoles.includes("CRS") || upperRawName.includes("CRS")) {
+      if (joinedRoles.includes("FORMATEUR") || upperRawName.includes("FORMATEUR")) {
+        specialite = "Formateur CRS";
       } else {
-        // Sélectionne le dernier groupe entre crochets [...] qui correspond généralement à la spécialité
-        const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
-        if (speMatches.length > 0) {
-          specialite = speMatches[speMatches.length - 1][1];
-        } else {
-          specialite = "Aucune";
-        }
+        specialite = "CRS";
+      }
+    } else if (joinedRoles.includes("BAC") || upperRawName.includes("BAC")) {
+      specialite = "BAC";
+    } else if (joinedRoles.includes("GSP") || upperRawName.includes("GSP")) {
+      specialite = "GSP";
+    } else if (joinedRoles.includes("BRI") || upperRawName.includes("BRI")) {
+      specialite = "BRI";
+    } else if (joinedRoles.includes("RAID") || upperRawName.includes("RAID")) {
+      specialite = "RAID";
+    } else if (joinedRoles.includes("PJ") || upperRawName.includes("PJ")) {
+      specialite = "PJ";
+    } else {
+      const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
+      if (speMatches.length > 0) {
+        let extracted = speMatches[speMatches.length - 1][1]
+          .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+          .replace(/[|:-]/g, '')
+          .trim();
+        specialite = extracted || "Aucune";
       }
     }
 
