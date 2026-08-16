@@ -11,11 +11,8 @@ const ordreGrades = [
 ];
 
 // 2. MAPPING OPTIONNEL DES ROLES DISCORD (ID du Rôle -> Grade & Qualification)
-// Remplace ou ajoute ici les IDs de tes rôles Discord si tu souhaites une détection automatique sans paramètre URL
 const roleMapping = {
-  "1521576207299383386": { grade: "Capitaine-Stagiaire", qualif: "Agent de Police Judiciaire" },
-  // Exemple d'un autre rôle :
-  // "ID_ROLE_GARDIEN": { grade: "Gardien de la Paix", qualif: "Agent de Police Judiciaire Adjoint" }
+  "1521576207299383386": { grade: "Capitaine-Stagiaire", qualif: "Officier de Police Judiciaire" }
 };
 
 // 3. Fonction pour récupérer et nettoyer les rôles de l'utilisateur
@@ -34,31 +31,27 @@ const userRoles = getUserRoles();
 
 // 4. Détection automatique du grade
 function detectGradeFromRoles(rolesList) {
-  // Priorité 1 : Transmis directement dans l'URL ou le storage
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
   if (urlGrade) return urlGrade;
 
-  // Priorité 2 : Détection via le mapping d'IDs
   for (const roleId of rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) {
       return roleMapping[roleId].grade;
     }
   }
 
-  // Priorité 3 : Recherche par nom de grade dans la liste des rôles
   for (const grade of ordreGrades) {
     const found = rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''));
     if (found) return grade;
   }
   
-  // Secours neutre par défaut si aucun grade n'est transmis ni détecté
-  return "Agent"; 
+  return "Capitaine-Stagiaire"; 
 }
 
 const dynamicGrade = detectGradeFromRoles(userRoles);
 
-// 5. Détection de la Qualification Judiciaire
-function detectQualification(rolesList) {
+// 5. Détection automatique de la Qualification Judiciaire (OPJ pour les officiers/commandement)
+function detectQualification(rolesList, grade) {
   const urlQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif');
   if (urlQualif) return urlQualif;
 
@@ -68,12 +61,21 @@ function detectQualification(rolesList) {
     }
   }
 
+  const gradesOPJ = [
+    "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
+    "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine"
+  ];
+
+  if (gradesOPJ.includes(grade)) {
+    return "Officier de Police Judiciaire";
+  }
+
   return "Agent de Police Judiciaire";
 }
 
-const dynamicQualif = detectQualification(userRoles);
+const dynamicQualif = detectQualification(userRoles, dynamicGrade);
 
-// 6. Parsing du pseudo Discord
+// 6. Nettoyage du pseudo Discord
 function parseDiscordPseudo(rawPseudo) {
   if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
   const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
@@ -84,16 +86,15 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// Extraction dynamique du nom et prénom (sans forcer de nom fixe en cas d'accès direct)
 const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "";
-const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
+let parsedPseudo = parseDiscordPseudo(rawPseudoInput);
 
-const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
-const rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || parsedPseudo.prenom;
+let rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
+let rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || parsedPseudo.prenom;
 
-const formattedNom = rawNom.toUpperCase();
-const formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
-const fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
+let formattedNom = rawNom.toUpperCase();
+let formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
+let fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
 
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
@@ -136,7 +137,7 @@ let orgIndexToDelete = null;
 
 let dbData = { armurerie: {}, organigramme: [] };
 
-document.addEventListener("DOMContentLoaded", () => {
+function updateUI() {
   if (document.getElementById('sidebar-user-name')) document.getElementById('sidebar-user-name').innerText = fullNameFormatted;
   if (document.getElementById('sidebar-user-grade')) document.getElementById('sidebar-user-grade').innerText = dynamicGrade.toUpperCase();
   if (document.getElementById('topbar-auth-user')) document.getElementById('topbar-auth-user').innerText = fullNameFormatted;
@@ -151,6 +152,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const pIcon = document.getElementById('profile-grade-icon');
     if (sbIcon) { sbIcon.src = iconUrl; sbIcon.classList.remove('hidden'); }
     if (pIcon) { pIcon.src = iconUrl; pIcon.classList.remove('hidden'); }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  updateUI();
+
+  // Si le pseudo n'est pas présent dans l'URL mais qu'un ID Discord est fourni, interrogation de l'API backend
+  if (currentDiscordId && (formattedNom === "INCONNU" || rawPseudoInput === "")) {
+    try {
+      const res = await fetch(`/api/discord-user/${currentDiscordId}`);
+      const data = await res.json();
+      if (data && data.displayName) {
+        const parsed = parseDiscordPseudo(data.displayName);
+        formattedNom = parsed.nom;
+        formattedPrenom = parsed.prenom;
+        fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
+        sessionStorage.setItem('discord_pseudo', data.displayName);
+        updateUI();
+      }
+    } catch (e) {
+      console.error("Erreur de récupération du pseudo Discord:", e);
+    }
   }
 
   const navArm = document.getElementById('nav-armurerie');
@@ -280,5 +303,6 @@ function setupCustomSelect() {
     optionsDiv.appendChild(div);
   });
 }
+
 function toggleDropdown() { document.getElementById('dropdown-options').classList.toggle('hidden'); }
 function handleLogout() { sessionStorage.clear(); window.location.href = '/'; }
