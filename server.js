@@ -141,7 +141,7 @@ app.get('/api/discord-user/:id', async (req, res) => {
       }).filter(Boolean);
 
     } catch (guildErr) {
-      console.warn("Échec de la recherche membre sur la Guild, tentative via l'API User globale...");
+      console.warn("Échec de la recherche membre sur la Guild :", guildErr.response?.data || guildErr.message);
     }
 
     // Étape 2 : Fallback sur l'utilisateur global Discord si non trouvé dans la guilde
@@ -156,50 +156,64 @@ app.get('/api/discord-user/:id', async (req, res) => {
     // Nom d'affichage brut
     const rawDisplayName = memberData.nick || memberData.user.global_name || memberData.user.username;
 
-    // 1. Extraction Prénom & Nom RP (supprime les préfixes entre crochets ex: "[S/B] [PJ-EQT] Pearce AISEN" -> "Pearce AISEN")
+    // 1. Extraction Prénom & Nom RP
     const cleanName = rawDisplayName.replace(/\[.*?\]/g, '').trim() || rawDisplayName;
 
-    // 2. Détection du Grade depuis les rôles Discord
+    // 2. Détection du Grade depuis les rôles Discord (insensible aux majuscules/espaces)
     const GRADELIST = [
       "Elève Gardien de la Paix", "Gardien de la Paix", "Sous-Brigadier", 
       "Brigadier", "Brigadier-Chef", "Major", "Major REX", 
       "Lieutenant", "Capitaine", "Commandant", "Commissaire"
     ];
-    let grade = userRoleNames.find(r => GRADELIST.includes(r)) || "Non défini";
+    let grade = userRoleNames.find(r => 
+      GRADELIST.some(g => g.toLowerCase() === r.trim().toLowerCase())
+    ) || "Non défini";
 
-    // Fallback Grade si non trouvé dans les rôles mais présent dans le pseudo (ex: [S/B])
+    // Fallback Grade si non trouvé dans les rôles mais présent dans le pseudo
     if (grade === "Non défini") {
-      if (rawDisplayName.includes("[S/B]")) grade = "Sous-Brigadier";
-      else if (rawDisplayName.includes("[GDK]")) grade = "Gardien de la Paix";
-      else if (rawDisplayName.includes("[BRG]")) grade = "Brigadier";
-      else if (rawDisplayName.includes("[BC]")) grade = "Brigadier-Chef";
-      else if (rawDisplayName.includes("[MJR]")) grade = "Major";
-      else if (rawDisplayName.includes("[LTN]")) grade = "Lieutenant";
-      else if (rawDisplayName.includes("[CPT]")) grade = "Capitaine";
-      else if (rawDisplayName.includes("[CDT]")) grade = "Commandant";
+      const upperName = rawDisplayName.toUpperCase();
+      if (upperName.includes("S/B")) grade = "Sous-Brigadier";
+      else if (upperName.includes("GDK") || upperName.includes("GPX")) grade = "Gardien de la Paix";
+      else if (upperName.includes("BRG") || upperName.includes("BRIGADIER")) grade = "Brigadier";
+      else if (upperName.includes("BC") || upperName.includes("BRIGADIER-CHEF")) grade = "Brigadier-Chef";
+      else if (upperName.includes("MJR") || upperName.includes("MAJOR")) grade = "Major";
+      else if (upperName.includes("LTN") || upperName.includes("LIEUTENANT")) grade = "Lieutenant";
+      else if (upperName.includes("CPT") || upperName.includes("CAPITAINE")) grade = "Capitaine";
+      else if (upperName.includes("CDT") || upperName.includes("COMMANDANT")) grade = "Commandant";
     }
 
     // 3. Détection de la Qualité Judiciaire (QJ)
     const QJ_LIST = ["OPJ", "APJ", "APJA"];
-    let qualiteJudiciaire = userRoleNames.find(r => QJ_LIST.includes(r));
+    let qualiteJudiciaire = userRoleNames.find(r => 
+      QJ_LIST.includes(r.toUpperCase().trim())
+    );
     
     if (!qualiteJudiciaire) {
-      if (rawDisplayName.includes("[OPJ]")) qualiteJudiciaire = "OPJ";
-      else if (rawDisplayName.includes("[APJ]")) qualiteJudiciaire = "APJ";
-      else if (rawDisplayName.includes("[APJA]")) qualiteJudiciaire = "APJA";
+      const upperName = rawDisplayName.toUpperCase();
+      if (upperName.includes("OPJ")) qualiteJudiciaire = "OPJ";
+      else if (upperName.includes("APJA")) qualiteJudiciaire = "APJA";
+      else if (upperName.includes("APJ")) qualiteJudiciaire = "APJ";
       else qualiteJudiciaire = "Aucune";
     }
 
     // 4. Détection de la Spécialité
     const SPE_KEYWORDS = ["PJ", "BAC", "GSP", "BRR", "USL", "SI", "BRI", "GIGN", "RAID"];
-    let specialite = userRoleNames.find(r => SPE_KEYWORDS.some(k => r.toUpperCase().includes(k)));
+    let specialite = userRoleNames.find(r => 
+      SPE_KEYWORDS.some(k => r.toUpperCase().includes(k))
+    );
 
     if (!specialite) {
-      const speMatch = rawDisplayName.match(/\[(.*?)\]/g);
-      if (speMatch && speMatch.length > 1) {
-        specialite = speMatch[1].replace(/[\[\]]/g, '');
+      const upperName = rawDisplayName.toUpperCase();
+      const foundSpe = SPE_KEYWORDS.find(k => upperName.includes(k));
+      if (foundSpe) {
+        specialite = foundSpe;
       } else {
-        specialite = "Aucune";
+        const speMatch = rawDisplayName.match(/\[(.*?)\]/g);
+        if (speMatch && speMatch.length > 1) {
+          specialite = speMatch[1].replace(/[\[\]]/g, '');
+        } else {
+          specialite = "Aucune";
+        }
       }
     }
 
