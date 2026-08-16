@@ -1,600 +1,1010 @@
 <!DOCTYPE html>
+
 <html lang="fr">
+
 <head>
+
   <script>
+
     try {
+
       const urlParamsCheck = new URLSearchParams(window.location.search);
+
       const authStatus = urlParamsCheck.get('auth');
 
-      // Si la connexion via Discord est réussie, on enregistre la session
-      if (authStatus === 'success') {
-        sessionStorage.setItem('discord_user', 'authenticated');
+      const discordUser = sessionStorage.getItem('discord_user');
+
+      if (authStatus !== 'success' && !discordUser) {
+
+        window.location.href = '/';
+
       }
 
-      // Vérification : si aucun des deux n'est valide, retour au login
-      const discordUser = sessionStorage.getItem('discord_user');
-      if (authStatus !== 'success' && !discordUser) {
-        window.location.href = '/';
-      }
     } catch (e) {
+
       window.location.href = '/';
+
     }
+
   </script>
+
   <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Intranet - Police Nationale</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
+
 <body class="bg-gray-100 text-gray-800 font-sans h-screen flex overflow-hidden">
 
+
+
   <!-- ==================== MENU LATÉRAL ==================== -->
+
   <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20">
+
     <div class="p-5 text-center border-b border-gray-200">
+
       <h2 class="font-bold text-sm tracking-wider text-blue-900">POLICE NATIONALE</h2>
+
     </div>
+
+
 
     <div class="bg-gray-50 p-3 m-3 rounded border border-gray-200 flex items-center space-x-3">
+
       <img id="sidebar-user-grade-icon" src="" alt="" class="h-6 object-contain hidden">
+
       <div>
+
         <span id="sidebar-user-grade" class="text-[10px] font-bold text-blue-900 block">CAPITAINE STAGIAIRE</span>
+
         <p id="sidebar-user-name" class="text-xs text-gray-700 font-medium">WALKER Chris</p>
+
       </div>
+
     </div>
 
+
+
     <nav class="flex-1 px-2 py-4 space-y-1">
+
       <button type="button" onclick="switchView('accueil')" id="nav-accueil" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-white bg-blue-900 transition-colors">
+
         Accueil
+
       </button>
+
       <button type="button" onclick="switchView('organigramme')" id="nav-organigramme" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+
         Organigramme
+
       </button>
-      <button type="button" onclick="switchView('armurerie-container')" id="nav-armurerie" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+
+     
+
+      <!-- Masqués par défaut, affichés via la logique JS d'habilitations -->
+
+      <button type="button" onclick="switchView('armurerie-container')" id="nav-armurerie" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+
         Armurerie
+
       </button>
-      <button type="button" onclick="switchView('commandement')" id="nav-commandement" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+
+      <button type="button" onclick="switchView('commandement')" id="nav-commandement" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+
         Commandement
+
       </button>
+
     </nav>
+
   </aside>
 
+
+
   <!-- ==================== CONTENEUR PRINCIPAL ==================== -->
+
   <div class="flex-1 flex flex-col h-screen overflow-hidden">
-    
+
+   
+
     <header class="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-8 z-10">
+
       <div class="text-xs font-bold text-blue-900 tracking-widest">INTRANET POLICE NATIONALE</div>
+
       <div class="flex items-center space-x-6 text-xs">
+
         <span>AGENT AUTHENTIFIÉ : <strong id="topbar-auth-user" class="text-gray-900">WALKER Chris</strong></span>
+
         <span class="bg-green-100 text-green-800 font-bold px-3 py-1.5 rounded">RÉSEAU PN-02ACCUEIL-PN4</span>
+
       </div>
+
     </header>
 
+
+
     <main class="flex-1 overflow-y-auto p-8">
+
       <div class="max-w-7xl mx-auto">
 
+
+
         <!-- ==================== VUE ACCUEIL ==================== -->
+
         <section id="view-accueil" class="space-y-6">
+
           <nav class="text-xs text-gray-500 font-medium">
+
             <span>Intranet</span> <span class="mx-1">/</span> <span class="font-semibold text-gray-800">Tableau de bord général</span>
+
           </nav>
-          
+
+         
+
           <div class="flex items-center space-x-3 mb-6">
+
             <div class="w-1.5 h-6 bg-blue-900"></div>
+
             <h1 class="text-2xl font-extrabold text-gray-900 uppercase">Portail Police Nationale</h1>
+
           </div>
+
           <p id="identification-subtitle" class="text-xs text-gray-600 italic -mt-4 mb-6">Identification : Capitaine Stagiaire — WALKER Chris</p>
 
+
+
           <div class="bg-white border border-gray-200 p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+
             <div class="border border-gray-200 p-5 bg-white flex flex-col justify-between">
+
               <div>
+
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Session utilisateur</h3>
+
                 <p class="text-sm font-bold text-blue-900 mb-1">BIENVENUE,</p>
+
                 <p id="welcome-user-name" class="text-xl font-bold text-gray-900 mb-4">WALKER Chris</p>
+
               </div>
+
               <div class="flex items-center justify-between mt-4">
+
                 <span class="inline-block bg-green-100 text-green-800 font-bold px-2.5 py-1 text-[10px] w-fit">AGENT CONNECTÉ</span>
+
                 <button type="button" onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 text-xs rounded transition-colors shadow-sm flex items-center space-x-1.5">
+
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+
                   <span>Déconnexion</span>
+
                 </button>
+
               </div>
+
             </div>
+
+
 
             <div class="border border-gray-200 p-5 bg-white">
+
               <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Habilitations & Grade</h3>
+
               <div id="profile-grade-container" class="flex items-center space-x-3 mb-3">
+
                 <img id="profile-grade-icon" src="" alt="" class="h-8 object-contain hidden">
+
                 <p id="profile-grade-title" class="font-bold text-sm text-gray-900">CAPITAINE STAGIAIRE</p>
+
               </div>
+
               <p class="text-[11px] text-gray-500">QUALIFICATION JUDICIAIRE :</p>
+
               <p id="qualification-judiciaire" class="text-xs font-bold text-blue-900 mt-1">Officier de Police Judiciaire</p>
+
             </div>
+
           </div>
+
         </section>
+
+
 
         <!-- ==================== VUE ORGANIGRAMME ==================== -->
+
         <section id="view-organigramme" class="hidden space-y-6">
+
           <nav class="text-xs text-gray-500 font-medium">
+
             <span>Intranet</span> <span class="mx-1">/</span> <span class="font-semibold text-gray-800">Organigramme</span>
+
           </nav>
-          
+
+         
+
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-gray-200">
+
             <div>
+
               <div class="flex items-center space-x-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+
                 <svg class="w-4 h-4 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+
                 </svg>
+
                 <span>Direction Ressources Humaines</span>
+
               </div>
+
               <h1 class="text-3xl font-black text-gray-900 tracking-tight uppercase">GESTION DES EFFECTIFS</h1>
+
             </div>
+
+
 
             <div class="flex items-center space-x-4">
+
               <div class="bg-white border border-gray-200 px-6 py-3 rounded shadow-sm text-center min-w-[160px]">
+
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">AGENTS ENREGISTRÉS</span>
-                <span id="org-total-count" class="text-2xl font-black text-blue-900">1</span>
+
+                <span id="org-total-count" class="text-2xl font-black text-blue-900">0</span>
+
               </div>
 
+
+
               <button type="button" onclick="openAddAgentModal()" class="bg-white hover:bg-gray-50 text-blue-950 font-bold border-2 border-blue-950 px-6 py-3 rounded text-xs tracking-wider flex items-center space-x-3 transition-colors shadow-sm uppercase">
+
                 <span>AJOUTER UN AGENT</span>
+
                 <span class="text-blue-600 font-extrabold text-sm">POLICE //</span>
+
               </button>
+
             </div>
+
           </div>
+
+
 
           <div class="bg-white rounded border border-gray-200 shadow-sm overflow-hidden">
+
             <table class="w-full text-left border-collapse">
+
               <thead>
+
                 <tr class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
+
                   <th class="py-3.5 px-6">IDENTITÉ</th>
+
                   <th class="py-3.5 px-6">GRADE</th>
+
                   <th class="py-3.5 px-6">RIO</th>
+
                   <th class="py-3.5 px-6">QUALITÉ JUDICIAIRE</th>
+
                   <th class="py-3.5 px-6">SPÉCIALITÉ</th>
+
                   <th class="py-3.5 px-6">CONTACT</th>
+
                   <th class="py-3.5 px-6">STATUT</th>
+
                   <th class="py-3.5 px-6 text-right">ACTIONS</th>
+
                 </tr>
+
               </thead>
+
               <tbody id="org-table-body" class="divide-y divide-gray-100 text-xs font-semibold text-gray-700">
+
+                <!-- Structure d'un rang d'agent exemple généré dynamiquement -->
+
                 <tr class="hover:bg-gray-50">
+
                   <td class="py-3.5 px-6 font-bold text-gray-900">Quentin DUPONT</td>
+
                   <td class="py-3.5 px-6">Commissaire de Police</td>
+
                   <td class="py-3.5 px-6 font-mono text-gray-600">1234567</td>
+
                   <td class="py-3.5 px-6">Officier de Police Judiciaire</td>
+
                   <td class="py-3.5 px-6">Voie Publique</td>
+
                   <td class="py-3.5 px-6">06.12.34.56.78</td>
+
                   <td class="py-3.5 px-6"><span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIF</span></td>
+
                   <td class="py-3.5 px-6 text-right space-x-2">
+
                     <button type="button" onclick="openEditAgentModal('1234567')" title="Modifier l'agent" class="text-blue-600 hover:text-blue-900 inline-block p-1 rounded hover:bg-blue-50 transition-colors">
+
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+
                     </button>
-                    <button type="button" onclick="deleteOrgAgent('1234567')" title="Supprimer l'agent" class="text-red-600 hover:text-red-800 font-bold inline-block p-1 rounded hover:bg-red-50 transition-colors">
+
+                    <button type="button" onclick="openOrgDeleteModal('1234567')" title="Supprimer l'agent" class="text-red-600 hover:text-red-800 font-bold inline-block p-1 rounded hover:bg-red-50 transition-colors">
+
                       Supprimer
+
                     </button>
+
                   </td>
+
                 </tr>
+
               </tbody>
+
             </table>
+
           </div>
+
         </section>
 
+
+
         <!-- ==================== VUE ARMURERIE ==================== -->
+
         <section id="view-armurerie-container" class="hidden">
+
           <div id="sub-view-armurerie">
+
             <nav class="text-xs text-gray-500 mb-4 font-medium">
+
               <span>Intranet</span> <span class="mx-1">/</span>
+
               <span class="font-semibold text-gray-700">Commandement</span> <span class="mx-1">/</span>
+
               <span class="font-semibold text-gray-900">Armurerie</span>
+
             </nav>
+
+
 
             <h1 class="text-3xl font-extrabold text-gray-900 mb-4">Armurerie — Vue d'ensemble</h1>
 
+
+
             <div id="total-weapons-badge" class="inline-block bg-blue-900 text-white font-semibold px-4 py-2 rounded mb-8 text-sm shadow-sm">
+
               0 arme enregistrée au total
+
             </div>
+
+
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
               <!-- PIE X26 (Tazer) -->
+
               <button type="button" onclick="showDetails('PIE X26')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
-                  <img src="Images/armes/Tazer.png" alt="PIE X26" class="max-h-32 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=PIE+X26';">
+
+                  <img src="Images/armes/Tazer.png" alt="PIE X26" class="max-h-32 object-contain">
+
                 </div>
+
                 <div>
+
                   <p class="text-sm font-bold text-gray-700 mb-1">PIE X26</p>
+
                   <div class="flex items-baseline space-x-1">
+
                     <span id="count-PIE X26" class="text-3xl font-extrabold text-blue-900">0</span>
+
                     <span class="text-xs text-gray-500">unité</span>
+
                   </div>
+
                 </div>
+
               </button>
+
+
 
               <!-- SIG SP 2022 -->
+
               <button type="button" onclick="showDetails('SIG SP 2022')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
-                  <img src="Images/armes/SIG.png" alt="SIG SP 2022" class="max-h-32 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=SIG+SP+2022';">
+
+                  <img src="Images/armes/SIG.png" alt="SIG SP 2022" class="max-h-32 object-contain">
+
                 </div>
+
                 <div>
+
                   <p class="text-sm font-bold text-gray-700 mb-1">SIG SP 2022</p>
+
                   <div class="flex items-baseline space-x-1">
+
                     <span id="count-SIG SP 2022" class="text-3xl font-extrabold text-blue-900">0</span>
+
                     <span class="text-xs text-gray-500">unité</span>
+
                   </div>
+
                 </div>
+
               </button>
+
+
 
               <!-- LBD 40 -->
+
               <button type="button" onclick="showDetails('LBD 40')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
-                  <img src="Images/armes/LBD.png" alt="LBD 40" class="max-h-32 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=LBD+40';">
+
+                  <img src="Images/armes/LBD.png" alt="LBD 40" class="max-h-32 object-contain">
+
                 </div>
+
                 <div>
+
                   <p class="text-sm font-bold text-gray-700 mb-1">LBD 40</p>
+
                   <div class="flex items-baseline space-x-1">
+
                     <span id="count-LBD 40" class="text-3xl font-extrabold text-blue-900">0</span>
+
                     <span class="text-xs text-gray-500">unité</span>
+
                   </div>
+
                 </div>
+
               </button>
+
+
 
               <!-- HK UMP 9 -->
+
               <button type="button" onclick="showDetails('HK UMP 9')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
-                  <img src="Images/armes/HK%20UMP.png" alt="HK UMP 9" class="max-h-32 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=HK+UMP+9';">
+
+                  <img src="Images/armes/HK%20UMP.png" alt="HK UMP 9" class="max-h-32 object-contain">
+
                 </div>
+
                 <div>
+
                   <p class="text-sm font-bold text-gray-700 mb-1">HK UMP 9</p>
+
                   <div class="flex items-baseline space-x-1">
+
                     <span id="count-HK UMP 9" class="text-3xl font-extrabold text-blue-900">0</span>
+
                     <span class="text-xs text-gray-500">unité</span>
+
                   </div>
+
                 </div>
+
               </button>
+
+
 
               <!-- HK G36 -->
+
               <button type="button" onclick="showDetails('HK G36')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
-                  <img src="Images/armes/G-36.png" alt="HK G36" class="max-h-32 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=HK+G36';">
+
+                  <img src="Images/armes/G-36.png" alt="HK G36" class="max-h-32 object-contain">
+
                 </div>
+
                 <div>
+
                   <p class="text-sm font-bold text-gray-700 mb-1">HK G36</p>
+
                   <div class="flex items-baseline space-x-1">
+
                     <span id="count-HK G36" class="text-3xl font-extrabold text-blue-900">0</span>
+
                     <span class="text-xs text-gray-500">unité</span>
+
                   </div>
+
                 </div>
+
               </button>
+
             </div>
+
           </div>
 
-          <!-- DÉTAILS D'UNE ARME -->
+
+
           <div id="sub-view-details" class="hidden">
+
             <nav class="text-sm text-gray-500 mb-4 font-medium">
+
               <span>Intranet</span> <span class="mx-1">/</span>
+
               <span class="font-semibold text-gray-700">Commandement</span> <span class="mx-1">/</span>
+
               <span class="font-semibold text-gray-700">Armurerie</span> <span class="mx-1">/</span>
+
               <span id="breadcrumb-weapon-name" class="font-bold text-gray-900"></span>
+
             </nav>
 
+
+
             <h1 class="text-3xl font-extrabold text-gray-900 mb-6">
+
               <span id="title-weapon-name"></span> — Effectifs
+
             </h1>
 
+
+
             <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
+
               <h2 class="text-md font-bold text-gray-800 mb-4">Attribuer une arme à un agent</h2>
-              <form id="add-agent-form" onsubmit="handleAddWeaponAgent(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
+
+              <form id="add-agent-form" onsubmit="handleAddAgent(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                <div class="relative">
+
                   <label class="block text-xs font-semibold text-gray-600 mb-1">Grade</label>
-                  <input type="text" id="input-grade" placeholder="ex: Capitaine" required class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-800 text-sm">
+
+                  <div id="custom-select-container" class="relative">
+
+                    <div id="select-header" onclick="toggleDropdown()" class="w-full px-3 py-2 border border-gray-300 rounded bg-white text-sm cursor-pointer flex items-center justify-between">
+
+                      <span id="selected-grade-text" class="text-gray-500">Sélectionner un grade</span>
+
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+
+                    </div>
+
+                    <div id="dropdown-options" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto"></div>
+
+                    <input type="hidden" id="input-grade" required>
+
+                  </div>
+
+                </div>
+
+
+
+                <div>
+
+                  <label for="input-nom" class="block text-xs font-semibold text-gray-600 mb-1">Nom</label>
+
+                  <input type="text" id="input-nom" placeholder="ex: Dupont" required class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-800 text-sm">
+
                 </div>
 
                 <div>
-                  <label for="input-nom" class="block text-xs font-semibold text-gray-600 mb-1">Nom</label>
-                  <input type="text" id="input-nom" placeholder="ex: Dupont" required class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-800 text-sm">
-                </div>
-                <div>
+
                   <label for="input-prenom" class="block text-xs font-semibold text-gray-600 mb-1">Prénom</label>
+
                   <input type="text" id="input-prenom" placeholder="ex: Jean" required class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-800 text-sm">
+
                 </div>
+
                 <div>
+
                   <label for="input-serie" class="block text-xs font-semibold text-gray-600 mb-1">N° de série</label>
+
                   <input type="text" id="input-serie" placeholder="ex: 104" required class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-800 text-sm">
+
                 </div>
+
                 <div class="md:col-span-4 flex justify-end mt-2">
+
                   <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white font-medium px-5 py-2 rounded text-sm transition-colors shadow-sm">
+
                     Ajouter l'agent
+
                   </button>
+
                 </div>
+
               </form>
+
             </div>
+
+
 
             <div class="bg-white rounded-md shadow-sm overflow-hidden mb-8 border border-gray-200">
+
               <table class="w-full text-left border-collapse">
+
                 <thead>
+
                   <tr class="bg-blue-900 text-white text-sm font-semibold">
+
                     <th class="py-3.5 px-6">Grade</th>
+
                     <th class="py-3.5 px-6">Nom</th>
+
                     <th class="py-3.5 px-6">Prénom</th>
+
                     <th class="py-3.5 px-6">Numéro de série</th>
+
                     <th class="py-3.5 px-6 text-right">Actions</th>
+
                   </tr>
+
                 </thead>
-                <tbody id="weapon-table-body" class="divide-y divide-gray-100 text-sm text-gray-700"></tbody>
+
+                <tbody id="table-body" class="divide-y divide-gray-100 text-sm text-gray-700"></tbody>
+
               </table>
+
             </div>
 
+
+
             <button type="button" onclick="showArmurerieOverview()" class="bg-blue-900 hover:bg-blue-800 text-white font-medium px-5 py-2.5 rounded text-sm transition-colors shadow-sm">
+
               Retour à l'armurerie
+
             </button>
+
           </div>
+
         </section>
+
+
 
         <!-- ==================== VUE COMMANDEMENT ==================== -->
+
         <section id="view-commandement" class="hidden space-y-6">
+
           <nav class="text-xs text-gray-500 font-medium">
+
             <span>Intranet</span> <span class="mx-1">/</span> <span class="font-semibold text-gray-800">Commandement</span>
+
           </nav>
+
           <h1 class="text-2xl font-extrabold text-gray-900 uppercase">Commandement</h1>
+
           <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <p class="text-sm text-gray-600">Section commandement accessible.</p>
+
+            <p class="text-sm text-gray-600">Section commandement en cours de développement...</p>
+
           </div>
+
         </section>
 
+
+
       </div>
+
     </main>
+
   </div>
+
+
 
   <!-- ==================== MODAL NOUVEL EFFECTIF ==================== -->
+
   <div id="add-agent-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+
     <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-200">
+
       <div class="p-6 border-b border-gray-100 flex items-start justify-between">
+
         <div>
+
           <h2 class="text-lg font-black text-blue-950 uppercase tracking-tight">NOUVEL EFFECTIF</h2>
+
           <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">GESTION DES RESSOURCES HUMAINES • POLICE NATIONALE</p>
+
         </div>
+
         <button type="button" onclick="closeAddAgentModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+
         </button>
+
       </div>
 
+
+
       <form id="modal-add-org-agent-form" onsubmit="handleModalAddOrgAgent(event)" class="p-6 space-y-6">
+
         <div class="bg-blue-50/50 p-4 rounded border border-blue-100 space-y-2">
+
           <label class="block text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center space-x-2">
+
             <span class="w-2 h-2 bg-blue-900 inline-block"></span>
-            <span>NOM ET PRÉNOM</span>
+
+            <span>IMPORTATION DISCORD (REQUIS)</span>
+
           </label>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="modal-input-nom" placeholder="Nom" required class="bg-white border border-gray-200 rounded px-4 py-2 text-sm">
-            <input type="text" id="modal-input-prenom" placeholder="Prénom" required class="bg-white border border-gray-200 rounded px-4 py-2 text-sm">
+
+          <div class="flex gap-2">
+
+            <input type="text" id="modal-input-discord" placeholder="Ex: 855101995106959380" required class="flex-1 bg-blue-100/40 border border-blue-200 rounded px-4 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+            <button type="button" onclick="fetchDiscordData()" class="bg-blue-950 hover:bg-blue-900 text-white font-black text-xs px-6 py-2.5 rounded tracking-wider transition-colors">
+
+              CHARGER
+
+            </button>
+
           </div>
+
         </div>
+
+
+
+        <div class="bg-gray-50 p-4 rounded border border-gray-100 grid grid-cols-2 gap-4">
+
+          <div>
+
+            <span class="block text-[10px] font-bold text-gray-400 uppercase">PRÉNOM & NOM</span>
+
+            <span id="modal-preview-name" class="text-sm font-black text-gray-900">—</span>
+
+          </div>
+
+          <div>
+
+            <span class="block text-[10px] font-bold text-gray-400 uppercase">GRADE</span>
+
+            <span id="modal-preview-grade" class="text-sm font-black text-blue-900">—</span>
+
+          </div>
+
+          <div>
+
+            <span class="block text-[10px] font-bold text-gray-400 uppercase">QUALITÉ JUDICIAIRE</span>
+
+            <span id="modal-preview-qualif" class="text-sm font-black text-gray-900">—</span>
+
+          </div>
+
+          <div>
+
+            <span class="block text-[10px] font-bold text-gray-400 uppercase">SPÉCIALITÉ</span>
+
+            <span id="modal-preview-service" class="text-sm font-black text-gray-900">—</span>
+
+          </div>
+
+        </div>
+
+
 
         <div class="grid grid-cols-2 gap-4">
+
           <div>
-            <label for="modal-input-grade" class="block text-xs font-bold text-gray-700 uppercase mb-1">GRADE</label>
-            <input type="text" id="modal-input-grade" placeholder="ex: Gardien de la paix" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm">
-          </div>
-          <div>
+
             <label for="modal-input-rio" class="block text-xs font-bold text-gray-700 uppercase mb-1">RIO</label>
-            <input type="text" id="modal-input-rio" placeholder="7 chiffres" required pattern="[0-9]{7}" maxlength="7" class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm">
+
+            <input type="text" id="modal-input-rio" placeholder="7 chiffres" required pattern="[0-9]{7}" maxlength="7" class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+            <span class="text-[10px] text-gray-400 block mt-1">Format requis : 7 chiffres (ex: 1234567)</span>
+
           </div>
+
+
+
           <div>
-            <label for="modal-input-qualif" class="block text-xs font-bold text-gray-700 uppercase mb-1">QUALITÉ JUDICIAIRE</label>
-            <input type="text" id="modal-input-qualif" placeholder="ex: OPJ" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm">
-          </div>
-          <div>
-            <label for="modal-input-specialite" class="block text-xs font-bold text-gray-700 uppercase mb-1">SPÉCIALITÉ</label>
-            <input type="text" id="modal-input-specialite" placeholder="ex: Voie publique" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm">
-          </div>
-          <div>
-            <label for="modal-input-statut" class="block text-xs font-bold text-gray-700 uppercase mb-1">STATUT</label>
-            <select id="modal-input-statut" required class="w-full bg-white border border-gray-200 rounded px-4 py-2 text-sm">
+
+            <label for="modal-input-statut" class="block text-xs font-bold text-gray-700 uppercase mb-1">STATUT OPÉRATIONNEL</label>
+
+            <select id="modal-input-statut" required class="w-full bg-white border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
               <option value="ACTIF" selected>ACTIF</option>
+
               <option value="EN CONGÉ">EN CONGÉ</option>
+
               <option value="INACTIF">INACTIF</option>
+
             </select>
+
           </div>
-          <div>
-            <label for="modal-input-phone" class="block text-xs font-bold text-gray-700 uppercase mb-1">TÉLÉPHONE</label>
-            <input type="text" id="modal-input-phone" placeholder="06.XX.XX.XX.XX" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm">
+
+
+
+          <div class="col-span-2">
+
+            <label for="modal-input-phone" class="block text-xs font-bold text-gray-700 uppercase mb-1">NUMÉRO DE TÉLÉPHONE</label>
+
+            <input type="text" id="modal-input-phone" placeholder="06.XX.XX.XX.XX" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
           </div>
+
         </div>
+
+
+
+        <!-- COCHE D'ACCÈS INTRANET -->
+
+        <div class="flex items-center space-x-3 p-3 bg-blue-50/60 border border-blue-200 rounded-lg">
+
+          <input type="checkbox" id="modal-input-intranet" class="w-4 h-4 text-blue-900 rounded border-gray-300 focus:ring-blue-800 cursor-pointer" checked>
+
+          <label for="modal-input-intranet" class="text-xs font-bold text-blue-950 uppercase tracking-wide cursor-pointer">
+
+            Autoriser l'accès à l'Intranet (Effectifs)
+
+          </label>
+
+        </div>
+
+
 
         <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-100">
+
           <button type="button" onclick="closeAddAgentModal()" class="text-xs font-bold text-gray-500 hover:text-gray-800 uppercase tracking-wider px-4 py-2">
+
             ANNULER
+
           </button>
+
           <button type="submit" class="bg-blue-950 hover:bg-blue-900 text-white font-black text-xs px-6 py-2.5 rounded tracking-wider flex items-center space-x-2 transition-colors">
+
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+
             <span>VALIDER</span>
+
           </button>
+
         </div>
+
       </form>
+
     </div>
+
   </div>
 
-  <!-- ==================== SCRIPT JAVASCRIPTS PRINCIPAUX ==================== -->
-  <script>
-    // Données locales pour l'Armurerie
-    const weaponsData = {
-      'PIE X26': [],
-      'SIG SP 2022': [],
-      'LBD 40': [],
-      'HK UMP 9': [],
-      'HK G36': []
-    };
 
-    let currentSelectedWeapon = '';
 
-    // Gestion du changement de vues/onglets
-    function switchView(viewName) {
-      const views = ['accueil', 'organigramme', 'armurerie-container', 'commandement'];
-      views.forEach(v => {
-        const el = document.getElementById(`view-${v}`);
-        const navBtn = document.getElementById(`nav-${v.replace('-container', '')}`);
-        if (el) el.classList.add('hidden');
-        if (navBtn) {
-          navBtn.classList.remove('bg-blue-900', 'text-white');
-          navBtn.classList.add('text-gray-700', 'hover:bg-gray-100');
-        }
-      });
+  <!-- ==================== MODAL ÉDITION AGENT ==================== -->
 
-      const activeView = document.getElementById(`view-${viewName}`);
-      const activeNav = document.getElementById(`nav-${viewName.replace('-container', '')}`);
-      
-      if (activeView) activeView.classList.remove('hidden');
-      if (activeNav) {
-        activeNav.classList.remove('text-gray-700', 'hover:bg-gray-100');
-        activeNav.classList.add('bg-blue-900', 'text-white');
-      }
+  <div id="edit-agent-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
 
-      if (viewName === 'armurerie-container') {
-        showArmurerieOverview();
-      }
-    }
+    <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-200">
 
-    // Fonctions Armurerie
-    function updateWeaponCounts() {
-      let total = 0;
-      Object.keys(weaponsData).forEach(weapon => {
-        const count = weaponsData[weapon].length;
-        total += count;
-        const badge = document.getElementById(`count-${weapon}`);
-        if (badge) badge.textContent = count;
-      });
-      const totalBadge = document.getElementById('total-weapons-badge');
-      if (totalBadge) {
-        totalBadge.textContent = `${total} arme${total > 1 ? 's' : ''} enregistrée${total > 1 ? 's' : ''} au total`;
-      }
-    }
+      <div class="p-6 border-b border-gray-100 flex items-start justify-between">
 
-    function showDetails(weaponName) {
-      currentSelectedWeapon = weaponName;
-      document.getElementById('sub-view-armurerie').classList.add('hidden');
-      document.getElementById('sub-view-details').classList.remove('hidden');
-      
-      document.getElementById('breadcrumb-weapon-name').textContent = weaponName;
-      document.getElementById('title-weapon-name').textContent = weaponName;
-      
-      renderWeaponTable();
-    }
+        <div>
 
-    function showArmurerieOverview() {
-      document.getElementById('sub-view-details').classList.add('hidden');
-      document.getElementById('sub-view-armurerie').classList.remove('hidden');
-      updateWeaponCounts();
-    }
+          <h2 class="text-lg font-black text-blue-950 uppercase tracking-tight">MODIFIER L'AGENT</h2>
 
-    function renderWeaponTable() {
-      const tbody = document.getElementById('weapon-table-body');
-      tbody.innerHTML = '';
-      
-      const agents = weaponsData[currentSelectedWeapon] || [];
-      if (agents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-6 text-center text-gray-400">Aucune arme attribuée pour le moment.</td></tr>`;
-        return;
-      }
+          <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">MISE À JOUR FICHE AGENT • POLICE NATIONALE</p>
 
-      agents.forEach((agent, index) => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50 border-b border-gray-100";
-        tr.innerHTML = `
-          <td class="py-3.5 px-6 font-semibold">${agent.grade}</td>
-          <td class="py-3.5 px-6 font-bold text-gray-900">${agent.nom}</td>
-          <td class="py-3.5 px-6">${agent.prenom}</td>
-          <td class="py-3.5 px-6 font-mono">${agent.serie}</td>
-          <td class="py-3.5 px-6 text-right">
-            <button type="button" onclick="removeWeaponAgent(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs">Supprimer</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+        </div>
 
-    function handleAddWeaponAgent(event) {
-      event.preventDefault();
-      const grade = document.getElementById('input-grade').value;
-      const nom = document.getElementById('input-nom').value;
-      const prenom = document.getElementById('input-prenom').value;
-      const serie = document.getElementById('input-serie').value;
+        <button type="button" onclick="closeEditAgentModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
 
-      weaponsData[currentSelectedWeapon].push({ grade, nom, prenom, serie });
-      document.getElementById('add-agent-form').reset();
-      renderWeaponTable();
-      updateWeaponCounts();
-    }
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
 
-    function removeWeaponAgent(index) {
-      weaponsData[currentSelectedWeapon].splice(index, 1);
-      renderWeaponTable();
-      updateWeaponCounts();
-    }
+        </button>
 
-    // Gestion de la modale Organigramme
-    function openAddAgentModal() {
-      document.getElementById('add-agent-modal').classList.remove('hidden');
-    }
+      </div>
 
-    function closeAddAgentModal() {
-      document.getElementById('add-agent-modal').classList.add('hidden');
-    }
 
-    function handleModalAddOrgAgent(event) {
-      event.preventDefault();
-      const nom = document.getElementById('modal-input-nom').value;
-      const prenom = document.getElementById('modal-input-prenom').value;
-      const grade = document.getElementById('modal-input-grade').value;
-      const rio = document.getElementById('modal-input-rio').value;
-      const qualif = document.getElementById('modal-input-qualif').value;
-      const spec = document.getElementById('modal-input-specialite').value;
-      const phone = document.getElementById('modal-input-phone').value;
-      const statut = document.getElementById('modal-input-statut').value;
 
-      const tbody = document.getElementById('org-table-body');
-      const tr = document.createElement('tr');
-      tr.className = "hover:bg-gray-50";
-      tr.innerHTML = `
-        <td class="py-3.5 px-6 font-bold text-gray-900">${prenom} ${nom.toUpperCase()}</td>
-        <td class="py-3.5 px-6">${grade}</td>
-        <td class="py-3.5 px-6 font-mono text-gray-600">${rio}</td>
-        <td class="py-3.5 px-6">${qualif}</td>
-        <td class="py-3.5 px-6">${spec}</td>
-        <td class="py-3.5 px-6">${phone}</td>
-        <td class="py-3.5 px-6"><span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px] font-bold">${statut}</span></td>
-        <td class="py-3.5 px-6 text-right space-x-2">
-          <button type="button" onclick="this.closest('tr').remove(); updateOrgTotal();" class="text-red-600 hover:text-red-800 font-bold inline-block p-1 rounded hover:bg-red-50 transition-colors">Supprimer</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+      <form id="modal-edit-org-agent-form" onsubmit="handleEditOrgAgent(event)" class="p-6 space-y-4">
 
-      updateOrgTotal();
-      document.getElementById('modal-add-org-agent-form').reset();
-      closeAddAgentModal();
-    }
+        <input type="hidden" id="edit-agent-id">
 
-    function deleteOrgAgent(rio) {
-      const rows = document.querySelectorAll('#org-table-body tr');
-      rows.forEach(row => {
-        if (row.children[2] && row.children[2].textContent === rio) {
-          row.remove();
-        }
-      });
-      updateOrgTotal();
-    }
 
-    function updateOrgTotal() {
-      const count = document.querySelectorAll('#org-table-body tr').length;
-      document.getElementById('org-total-count').textContent = count;
-    }
 
-    function handleLogout() {
-      sessionStorage.clear();
-      window.location.href = '/';
-    }
+        <div class="grid grid-cols-2 gap-4">
 
-    // Initialisation au chargement
-    document.addEventListener('DOMContentLoaded', () => {
-      updateWeaponCounts();
-      updateOrgTotal();
-    });
-  </script>
-</body>
-</html>
+          <div>
+
+            <label for="edit-input-nom" class="block text-xs font-bold text-gray-700 uppercase mb-1">NOM</label>
+
+            <input type="text" id="edit-input-nom" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-prenom" class="block text-xs font-bold text-gray-700 uppercase mb-1">PRÉNOM</label>
+
+            <input type="text" id="edit-input-prenom" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-grade" class="block text-xs font-bold text-gray-700 uppercase mb-1">GRADE</label>
+
+            <input type="text" id="edit-input-grade" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-rio" class="block text-xs font-bold text-gray-700 uppercase mb-1">RIO</label>
+
+            <input type="text" id="edit-input-rio" required pattern="[0-9]{7}" maxlength="7" class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-qualif" class="block text-xs font-bold text-gray-700 uppercase mb-1">QUALITÉ JUDICIAIRE</label>
+
+            <input type="text" id="edit-input-qualif" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-specialite" class="block text-xs font-bold text-gray-700 uppercase mb-1">SPÉCIALITÉ</label>
+
+            <input type="text" id="edit-input-specialite" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-phone" class="block text-xs font-bold text-gray-700 uppercase mb-1">CONTACT</label>
+
+            <input type="text" id="edit-input-phone" required class="w-full bg-gray-50 border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+          </div>
+
+          <div>
+
+            <label for="edit-input-statut" class="block text-xs font-bold text-gray-700 uppercase mb-1">STATUT</label>
+
+            <select id="edit-input-statut" required class="w-full bg-white border border-gray-200 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900">
+
+              <option value="ACTIF">ACTIF</option>
+
+              <option value="EN CONGÉ">EN CONGÉ</option>
+
+              <option value="INACTIF">INACTIF</option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-100">
+
+          <button type="button" onclick="closeEditAgentModal()" class="text-xs font-bold text-gray-500 hover:text-gray-800 uppercase tracking-wider px-4 py-2">
+
+            ANNULER
+
+          </button>
+
+          <button type="submit" class="bg-blue-950 hover:bg-blue-900 text-white font-black text-xs px-6 py-2.5 rounded tracking-wider transition-colors">
+
+            ENREGISTRER
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Modals de suppression -->
+
+  <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-c 
+
