@@ -92,19 +92,16 @@ function parseDiscordPseudo(rawPseudo) {
 function syncUserDataWithOrganigramme() {
   let matchedAgent = null;
 
-  // Recherche par ID Discord dans la liste organigramme
   if (currentDiscordId && dbData.organigramme) {
     matchedAgent = dbData.organigramme.find(a => String(a.discordId) === String(currentDiscordId));
   }
 
   if (matchedAgent) {
-    // Agent trouvé dans l'organigramme
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
     dynamicGrade = matchedAgent.grade || "Agent";
-    dynamicQualif = matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
+    dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
   } else {
-    // Si absent de l'organigramme, repli sur l'URL / les Rôles
     const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || "";
     const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
     
@@ -199,20 +196,37 @@ function switchView(viewName) {
 async function loadData() {
   try {
     const res = await fetch(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
-    if (!res.ok) throw new Error("Erreur");
+    if (!res.ok) throw new Error("Erreur de chargement des données");
     const json = await res.json();
-    if (json.record) { dbData = json.record; }
     
-    // Synchronisation automatique de l'utilisateur avec l'organigramme chargé
+    if (json.record) { 
+      dbData = json.record;
+      if (!Array.isArray(dbData.organigramme)) {
+        dbData.organigramme = [];
+      }
+      if (!dbData.armurerie) {
+        dbData.armurerie = {};
+      }
+    }
+    
     syncUserDataWithOrganigramme();
-    
     updateArmurerieCounts();
     renderOrganigrammeTable();
-  } catch (e) { console.error(e); }
+  } catch (e) { 
+    console.error("Erreur loadData :", e); 
+  }
 }
 
 async function saveData() {
-  try { await fetch(API_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY }, body: JSON.stringify(dbData) }); } catch (e) { console.error(e); }
+  try { 
+    await fetch(API_URL, { 
+      method: 'PUT', 
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY }, 
+      body: JSON.stringify(dbData) 
+    }); 
+  } catch (e) { 
+    console.error("Erreur saveData :", e); 
+  }
 }
 
 function updateArmurerieCounts() {
@@ -255,30 +269,139 @@ function renderWeaponTable() {
 function openDeleteModal(index) { indexToDelete = index; document.getElementById('delete-modal').classList.remove('hidden'); }
 function closeDeleteModal() { indexToDelete = null; document.getElementById('delete-modal').classList.add('hidden'); }
 
-function openAddAgentModal() { document.getElementById('add-agent-modal').classList.remove('hidden'); }
+function openAddAgentModal() { 
+  tempDiscordAgent = null;
+  const idsToClear = ['modal-input-discord', 'modal-preview-name', 'modal-preview-grade', 'modal-preview-qj', 'modal-preview-spe', 'modal-input-rio', 'modal-input-phone'];
+  idsToClear.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (el.tagName === 'INPUT') el.value = '';
+      else el.innerText = '—';
+    }
+  });
+  document.getElementById('add-agent-modal').classList.remove('hidden'); 
+}
 function closeAddAgentModal() { document.getElementById('add-agent-modal').classList.add('hidden'); }
 
+// CORRECTION MAJEURE : Récupération et affichage de toutes les données Discord
 async function fetchDiscordData() {
-  const id = document.getElementById('modal-input-discord').value.trim();
-  if (!id) return;
+  const idInput = document.getElementById('modal-input-discord');
+  if (!idInput) return;
+  const id = idInput.value.trim();
+  if (!id) return alert("Veuillez saisir un ID Discord.");
+
   try {
     const res = await fetch(`/api/discord-user/${id}`);
     const data = await res.json();
-    if (!data.success) return alert("Utilisateur introuvable.");
-    
+    if (!data.success) return alert(data.message || "Utilisateur introuvable.");
+
     const parsed = parseDiscordPseudo(data.displayName);
-    tempDiscordAgent = { discordId: id, nom: parsed.nom, prenom: parsed.prenom, grade: "Capitaine-Stagiaire" };
-    document.getElementById('modal-preview-name').innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
-  } catch (e) { console.error(e); }
+
+    tempDiscordAgent = {
+      discordId: id,
+      nom: parsed.nom,
+      prenom: parsed.prenom,
+      grade: data.grade || "Non défini",
+      qualiteJudiciaire: data.qualiteJudiciaire || "Aucune",
+      specialite: data.specialite || "Aucune"
+    };
+
+    // Mettre à jour l'interface utilisateur de la modale
+    const elName = document.getElementById('modal-preview-name');
+    const elGrade = document.getElementById('modal-preview-grade');
+    const elQJ = document.getElementById('modal-preview-qj');
+    const elSpe = document.getElementById('modal-preview-spe');
+
+    if (elName) elName.innerText = `${tempDiscordAgent.nom} ${tempDiscordAgent.prenom}`;
+    if (elGrade) elGrade.innerText = tempDiscordAgent.grade;
+    if (elQJ) elQJ.innerText = tempDiscordAgent.qualiteJudiciaire;
+    if (elSpe) elSpe.innerText = tempDiscordAgent.specialite;
+
+  } catch (e) { 
+    console.error("Erreur lors de la récupération Discord :", e);
+    alert("Impossible de communiquer avec le serveur.");
+  }
 }
 
+// Validation de l'ajout d'un agent dans l'organigramme
+async function submitAddAgent() {
+  if (!tempDiscordAgent) {
+    return alert("Veuillez d'abord charger un utilisateur Discord valide.");
+  }
+
+  const rio = document.getElementById('modal-input-rio')?.value.trim() || "";
+  const phone = document.getElementById('modal-input-phone')?.value.trim() || "";
+  const statusEl = document.getElementById('modal-select-status');
+  const status = statusEl ? statusEl.value : "ACTIF";
+  const intranetAccessEl = document.getElementById('modal-checkbox-intranet');
+  const intranetAccess = intranetAccessEl ? intranetAccessEl.checked : true;
+
+  const newAgent = {
+    ...tempDiscordAgent,
+    rio: rio,
+    phone: phone,
+    status: status,
+    intranetAccess: intranetAccess
+  };
+
+  dbData.organigramme.push(newAgent);
+  await saveData();
+  renderOrganigrammeTable();
+  closeAddAgentModal();
+}
+
+// CORRECTION MAJEURE : Affichage complet du tableau des agents avec actions (Supprimer / Modifier)
 function renderOrganigrammeTable() {
   const tbody = document.getElementById('org-table-body');
+  const countBadge = document.getElementById('total-agents-count') || document.getElementById('agents-count');
+  
+  if (countBadge) {
+    const total = dbData.organigramme ? dbData.organigramme.length : 0;
+    countBadge.innerText = `${total} agent${total > 1 ? 's' : ''}`;
+  }
+
   if (!tbody) return;
   tbody.innerHTML = '';
+
+  if (!dbData.organigramme || dbData.organigramme.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun agent dans l'organigramme.</td></tr>`;
+    return;
+  }
+
   dbData.organigramme.forEach((agent, index) => {
-    tbody.innerHTML += `<tr><td class="py-3 px-6 font-bold text-gray-900">${agent.prenom} ${agent.nom}</td><td>${agent.grade}</td><td class="py-3 px-6"><button onclick="openOrgDeleteModal(${index})" class="text-red-600">Supprimer</button></td></tr>`;
+    const icon = gradeIcons[agent.grade];
+    tbody.innerHTML += `
+      <tr class="border-b hover:bg-gray-50 text-sm">
+        <td class="py-3 px-6 font-bold text-gray-900 uppercase">${agent.nom || ''} ${agent.prenom || ''}</td>
+        <td class="py-3 px-6">
+          <div class="flex items-center space-x-2">
+            ${icon ? `<img src="${icon}" class="w-5 h-5 object-contain">` : ''}
+            <span>${agent.grade || '—'}</span>
+          </div>
+        </td>
+        <td class="py-3 px-6">${agent.qualiteJudiciaire || agent.qualif || '—'}</td>
+        <td class="py-3 px-6">${agent.specialite || '—'}</td>
+        <td class="py-3 px-6 font-mono text-xs">${agent.rio || '—'}</td>
+        <td class="py-3 px-6">
+          <span class="px-2 py-1 rounded text-xs font-bold ${agent.status === 'ACTIF' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            ${agent.status || 'ACTIF'}
+          </span>
+        </td>
+        <td class="py-3 px-6 text-right space-x-2">
+          <button onclick="deleteOrgAgent(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase">Supprimer</button>
+        </td>
+      </tr>
+    `;
   });
+}
+
+// Suppression d'un agent de l'organigramme
+async function deleteOrgAgent(index) {
+  if (confirm("Êtes-vous sûr de vouloir supprimer cet agent de l'organigramme ?")) {
+    dbData.organigramme.splice(index, 1);
+    await saveData();
+    renderOrganigrammeTable();
+  }
 }
 
 function setupCustomSelect() {
@@ -293,5 +416,9 @@ function setupCustomSelect() {
   });
 }
 
-function toggleDropdown() { document.getElementById('dropdown-options').classList.toggle('hidden'); }
+function toggleDropdown() { 
+  const el = document.getElementById('dropdown-options');
+  if (el) el.classList.toggle('hidden'); 
+}
+
 function handleLogout() { sessionStorage.clear(); window.location.href = '/'; }
