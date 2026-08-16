@@ -434,6 +434,53 @@
     </div>
   </div>
 
+  <!-- Script d'injection dynamique des informations de l'agent connecté -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const storedUser = sessionStorage.getItem('discord_user');
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                
+                // Adaptez ces clés (user.prenom, user.nom, user.grade, user.qualite) 
+                // selon la structure exacte renvoyée par votre backend/base de données.
+                const fullName = `${user.prenom || ''} ${user.nom || ''}`.trim() || "WALKER Chris";
+                const gradeText = user.grade || "CAPITAINE STAGIAIRE";
+                const qualiteText = user.qualite || "Officier de Police Judiciaire";
+
+                // Mise à jour du menu latéral
+                const sideGrade = document.getElementById('sidebar-user-grade');
+                const sideName = document.getElementById('sidebar-user-name');
+                if (sideGrade) sideGrade.innerText = gradeText;
+                if (sideName) sideName.innerText = fullName;
+
+                // Mise à jour de la Topbar
+                const topAuthUser = document.getElementById('topbar-auth-user');
+                if (topAuthUser) topAuthUser.innerText = fullName;
+
+                // Mise à jour du sous-titre de l'accueil
+                const subTitle = document.getElementById('identification-subtitle');
+                if (subTitle) {
+                    subTitle.innerText = `Identification : ${gradeText} — ${fullName}`;
+                }
+
+                // Mise à jour du bloc "Session utilisateur" (Bienvenue)
+                const welcomeName = document.getElementById('welcome-user-name');
+                if (welcomeName) welcomeName.innerText = fullName;
+
+                // Mise à jour du bloc "Habilitations & Grade"
+                const profileGradeTitle = document.getElementById('profile-grade-title');
+                const qualifJudiciaire = document.getElementById('qualification-judiciaire');
+                if (profileGradeTitle) profileGradeTitle.innerText = gradeText;
+                if (qualifJudiciaire) qualifJudiciaire.innerText = qualiteText;
+
+            } catch (e) {
+                console.error("Erreur lors de la lecture des données utilisateur :", e);
+            }
+        }
+    });
+  </script>
+
   <script src="script.js"></script>
 </body>
 </html>
