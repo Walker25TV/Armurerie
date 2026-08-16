@@ -1,15 +1,15 @@
 // ==================== RECUPERATION DES INFORMATIONS DISCORD ET UTILS ====================
 const urlParamsScript = new URLSearchParams(window.location.search);
 
-// Récupération dynamique basée sur l'URL ou sessionStorage, avec fallback propre
-const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || "WALKER";
-const rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || "Chris";
+// Récupération dynamique basée sur l'URL ou sessionStorage (sans forcer ton nom en dur)
+const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || "INCONNU";
+const rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || "Agent";
 const formattedNom = rawNom.toUpperCase();
 const formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
 const fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
 
-const dynamicGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade') || "Capitaine-Stagiaire";
-const dynamicQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif') || "Officier de Police Judiciaire";
+const dynamicGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade') || "Gardien de la Paix";
+const dynamicQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif') || "Agent de Police Judiciaire";
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
 const ROLE_ARMURERIE = "1521576291722330354";
