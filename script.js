@@ -527,7 +527,7 @@ async function handleModalAddOrgAgent(event) {
   closeAddAgentModal();
 }
 
-// Affichage et mise à jour de la table d'organigramme
+// Affichage et mise à jour de la table d'organigramme (trié par ordre hiérarchique)
 function renderOrganigrammeTable() {
   const tbody = document.getElementById('org-table-body');
   const total = (dbData.organigramme && Array.isArray(dbData.organigramme)) ? dbData.organigramme.length : 0;
@@ -543,7 +543,33 @@ function renderOrganigrammeTable() {
     return;
   }
 
-  dbData.organigramme.forEach((agent, index) => {
+  // Association des agents avec leur index d'origine pour conserver le ciblage des boutons
+  const agentsWithOriginalIndex = dbData.organigramme.map((agent, index) => ({
+    agent,
+    originalIndex: index
+  }));
+
+  // Tri hiérarchique basé sur l'index du grade dans `ordreGrades`
+  agentsWithOriginalIndex.sort((a, b) => {
+    let indexA = ordreGrades.indexOf(a.agent.grade);
+    let indexB = ordreGrades.indexOf(b.agent.grade);
+
+    if (indexA === -1) indexA = 999;
+    if (indexB === -1) indexB = 999;
+
+    if (indexA !== indexB) {
+      return indexA - indexB;
+    }
+
+    // Tri alphabétique secondaire par Nom puis Prénom en cas de même grade
+    const nomA = (a.agent.nom || '').toUpperCase();
+    const nomB = (b.agent.nom || '').toUpperCase();
+    if (nomA !== nomB) return nomA.localeCompare(nomB);
+
+    return (a.agent.prenom || '').localeCompare(b.agent.prenom || '');
+  });
+
+  agentsWithOriginalIndex.forEach(({ agent, originalIndex }) => {
     const icon = gradeIcons[agent.grade];
     tbody.innerHTML += `
       <tr class="border-b hover:bg-gray-50 text-sm">
@@ -564,11 +590,11 @@ function renderOrganigrammeTable() {
           </span>
         </td>
         <td class="py-3.5 px-6 text-right flex items-center justify-end space-x-3">
-          <button type="button" onclick="editOrgAgent(${index})" class="text-blue-900 hover:text-blue-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1">
+          <button type="button" onclick="editOrgAgent(${originalIndex})" class="text-blue-900 hover:text-blue-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
             <span>ÉDITER</span>
           </button>
-          <button type="button" onclick="openOrgDeleteModal(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-wider">SUPPRIMER</button>
+          <button type="button" onclick="openOrgDeleteModal(${originalIndex})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-wider">SUPPRIMER</button>
         </td>
       </tr>
     `;
