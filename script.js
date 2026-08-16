@@ -113,15 +113,26 @@ function syncUserDataWithOrganigramme() {
     }
   }
 
+  // Si l'agent est trouvé dans l'organigramme, on vérifie si son grade en base correspond à un ancien grade 
+  // alors qu'un rôle Discord plus précis existe (ex: Capitaine-Stagiaire vs Capitaine)
+  const roleDetectedGrade = detectGradeFromRoles(userRoles);
+
   if (matchedAgent) {
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
-    dynamicGrade = matchedAgent.grade || "Sous-Brigadier";
+    
+    // Si le rôle Discord détecte un grade spécifique (comme Capitaine-Stagiaire), on priorise le rôle Discord sur la base si l'organigramme a un grade obsolète
+    if (roleDetectedGrade && roleDetectedGrade !== "Sous-Brigadier" && matchedAgent.grade === "Capitaine") {
+      dynamicGrade = roleDetectedGrade;
+    } else {
+      dynamicGrade = matchedAgent.grade || roleDetectedGrade;
+    }
+
     dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
   } else {
     formattedNom = searchNom;
     formattedPrenom = searchPrenom.charAt(0).toUpperCase() + searchPrenom.slice(1);
-    dynamicGrade = detectGradeFromRoles(userRoles);
+    dynamicGrade = roleDetectedGrade;
     dynamicQualif = detectQualificationFromGrade(dynamicGrade);
   }
 
@@ -142,10 +153,11 @@ function detectGradeFromRoles(rolesList) {
   const gradesTries = [...ordreGrades].sort((a, b) => b.length - a.length);
 
   for (const role of rolesList) {
-    const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+    // CORRECTION : Conserver le tiret (-) pour ne pas casser "Capitaine-Stagiaire"
+    const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
 
     for (const grade of gradesTries) {
-      const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+      const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
       if (roleClean.includes(gradeClean)) {
         return grade;
       }
