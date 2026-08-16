@@ -2,10 +2,14 @@
 <html lang="fr">
 <head>
   <script>
-    const urlParamsCheck = new URLSearchParams(window.location.search);
-    const authStatus = urlParamsCheck.get('auth');
-    const discordUser = sessionStorage.getItem('discord_user');
-    if (authStatus !== 'success' && !discordUser) {
+    try {
+      const urlParamsCheck = new URLSearchParams(window.location.search);
+      const authStatus = urlParamsCheck.get('auth');
+      const discordUser = sessionStorage.getItem('discord_user');
+      if (authStatus !== 'success' && !discordUser) {
+        window.location.href = '/';
+      }
+    } catch (e) {
       window.location.href = '/';
     }
   </script>
@@ -31,18 +35,18 @@
     </div>
 
     <nav class="flex-1 px-2 py-4 space-y-1">
-      <button onclick="switchView('accueil')" id="nav-accueil" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-white bg-blue-900 transition-colors">
+      <button type="button" onclick="switchView('accueil')" id="nav-accueil" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-white bg-blue-900 transition-colors">
         Accueil
       </button>
-      <button onclick="switchView('organigramme')" id="nav-organigramme" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+      <button type="button" onclick="switchView('organigramme')" id="nav-organigramme" class="w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
         Organigramme
       </button>
       
       <!-- Masqués par défaut, affichés via la logique JS d'habilitations -->
-      <button onclick="switchView('armurerie-container')" id="nav-armurerie" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+      <button type="button" onclick="switchView('armurerie-container')" id="nav-armurerie" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
         Armurerie
       </button>
-      <button onclick="switchView('commandement')" id="nav-commandement" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
+      <button type="button" onclick="switchView('commandement')" id="nav-commandement" class="hidden w-full flex items-center px-4 py-3 text-sm font-bold rounded text-gray-700 hover:bg-gray-100 transition-colors">
         Commandement
       </button>
     </nav>
@@ -83,7 +87,7 @@
               </div>
               <div class="flex items-center justify-between mt-4">
                 <span class="inline-block bg-green-100 text-green-800 font-bold px-2.5 py-1 text-[10px] w-fit">AGENT CONNECTÉ</span>
-                <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 text-xs rounded transition-colors shadow-sm flex items-center space-x-1.5">
+                <button type="button" onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 text-xs rounded transition-colors shadow-sm flex items-center space-x-1.5">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                   <span>Déconnexion</span>
                 </button>
@@ -125,7 +129,7 @@
                 <span id="org-total-count" class="text-2xl font-black text-blue-900">0</span>
               </div>
 
-              <button onclick="openAddAgentModal()" class="bg-white hover:bg-gray-50 text-blue-950 font-bold border-2 border-blue-950 px-6 py-3 rounded text-xs tracking-wider flex items-center space-x-3 transition-colors shadow-sm uppercase">
+              <button type="button" onclick="openAddAgentModal()" class="bg-white hover:bg-gray-50 text-blue-950 font-bold border-2 border-blue-950 px-6 py-3 rounded text-xs tracking-wider flex items-center space-x-3 transition-colors shadow-sm uppercase">
                 <span>AJOUTER UN AGENT</span>
                 <span class="text-blue-600 font-extrabold text-sm">POLICE //</span>
               </button>
@@ -168,7 +172,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <!-- PIE X26 (Tazer) -->
-              <button onclick="showDetails('PIE X26')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+              <button type="button" onclick="showDetails('PIE X26')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
                   <img src="Images/armes/Tazer.png" alt="PIE X26" class="max-h-32 object-contain">
                 </div>
@@ -182,7 +186,7 @@
               </button>
 
               <!-- SIG SP 2022 -->
-              <button onclick="showDetails('SIG SP 2022')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+              <button type="button" onclick="showDetails('SIG SP 2022')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
                   <img src="Images/armes/SIG.png" alt="SIG SP 2022" class="max-h-32 object-contain">
                 </div>
@@ -196,7 +200,7 @@
               </button>
 
               <!-- LBD 40 -->
-              <button onclick="showDetails('LBD 40')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+              <button type="button" onclick="showDetails('LBD 40')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
                   <img src="Images/armes/LBD.png" alt="LBD 40" class="max-h-32 object-contain">
                 </div>
@@ -210,7 +214,7 @@
               </button>
 
               <!-- HK UMP 9 -->
-              <button onclick="showDetails('HK UMP 9')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+              <button type="button" onclick="showDetails('HK UMP 9')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
                   <img src="Images/armes/HK%20UMP.png" alt="HK UMP 9" class="max-h-32 object-contain">
                 </div>
@@ -224,7 +228,7 @@
               </button>
 
               <!-- HK G36 -->
-              <button onclick="showDetails('HK G36')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
+              <button type="button" onclick="showDetails('HK G36')" class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-800 flex flex-col justify-between h-64 hover:shadow-md transition-shadow text-left w-full">
                 <div class="flex-1 flex items-center justify-center p-2 w-full">
                   <img src="Images/armes/G-36.png" alt="HK G36" class="max-h-32 object-contain">
                 </div>
@@ -301,7 +305,7 @@
               </table>
             </div>
 
-            <button onclick="showArmurerieOverview()" class="bg-blue-900 hover:bg-blue-800 text-white font-medium px-5 py-2.5 rounded text-sm transition-colors shadow-sm">
+            <button type="button" onclick="showArmurerieOverview()" class="bg-blue-900 hover:bg-blue-800 text-white font-medium px-5 py-2.5 rounded text-sm transition-colors shadow-sm">
               Retour à l'armurerie
             </button>
           </div>
@@ -330,7 +334,7 @@
           <h2 class="text-lg font-black text-blue-950 uppercase tracking-tight">NOUVEL EFFECTIF</h2>
           <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">GESTION DES RESSOURCES HUMAINES • POLICE NATIONALE</p>
         </div>
-        <button onclick="closeAddAgentModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <button type="button" onclick="closeAddAgentModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
@@ -417,8 +421,8 @@
       <h3 class="text-lg font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
       <p class="text-sm text-gray-600 mb-6">Êtes-vous sûr de vouloir retirer cette arme à cet agent ?</p>
       <div class="flex justify-end space-x-3">
-        <button onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
-        <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors">Supprimer</button>
+        <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
+        <button type="button" id="confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors">Supprimer</button>
       </div>
     </div>
   </div>
@@ -428,8 +432,8 @@
       <h3 class="text-lg font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
       <p class="text-sm text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer cet agent de l'organigramme ?</p>
       <div class="flex justify-end space-x-3">
-        <button onclick="closeOrgDeleteModal()" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
-        <button id="org-confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors">Supprimer</button>
+        <button type="button" onclick="closeOrgDeleteModal()" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
+        <button type="button" id="org-confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors">Supprimer</button>
       </div>
     </div>
   </div>
@@ -437,45 +441,45 @@
   <!-- Script d'injection dynamique des informations de l'agent connecté -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const storedUser = sessionStorage.getItem('discord_user');
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser);
-                
-                const fullName = `${user.prenom || ''} ${user.nom || ''}`.trim() || "WALKER Chris";
-                const gradeText = user.grade || "CAPITAINE STAGIAIRE";
-                const qualiteText = user.qualite || "Officier de Police Judiciaire";
+      const storedUser = sessionStorage.getItem('discord_user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          
+          const fullName = `${user.prenom || ''} ${user.nom || ''}`.trim() || "WALKER Chris";
+          const gradeText = user.grade || "CAPITAINE STAGIAIRE";
+          const qualiteText = user.qualite || "Officier de Police Judiciaire";
 
-                // Mise à jour du menu latéral
-                const sideGrade = document.getElementById('sidebar-user-grade');
-                const sideName = document.getElementById('sidebar-user-name');
-                if (sideGrade) sideGrade.innerText = gradeText;
-                if (sideName) sideName.innerText = fullName;
+          // Mise à jour du menu latéral
+          const sideGrade = document.getElementById('sidebar-user-grade');
+          const sideName = document.getElementById('sidebar-user-name');
+          if (sideGrade) sideGrade.textContent = gradeText;
+          if (sideName) sideName.textContent = fullName;
 
-                // Mise à jour de la Topbar
-                const topAuthUser = document.getElementById('topbar-auth-user');
-                if (topAuthUser) topAuthUser.innerText = fullName;
+          // Mise à jour de la Topbar
+          const topAuthUser = document.getElementById('topbar-auth-user');
+          if (topAuthUser) topAuthUser.textContent = fullName;
 
-                // Mise à jour du sous-titre de l'accueil
-                const subTitle = document.getElementById('identification-subtitle');
-                if (subTitle) {
-                    subTitle.innerText = `Identification : ${gradeText} — ${fullName}`;
-                }
+          // Mise à jour du sous-titre de l'accueil
+          const subTitle = document.getElementById('identification-subtitle');
+          if (subTitle) {
+            subTitle.textContent = `Identification : ${gradeText} — ${fullName}`;
+          }
 
-                // Mise à jour du bloc "Session utilisateur" (Bienvenue)
-                const welcomeName = document.getElementById('welcome-user-name');
-                if (welcomeName) welcomeName.innerText = fullName;
+          // Mise à jour du bloc "Session utilisateur" (Bienvenue)
+          const welcomeName = document.getElementById('welcome-user-name');
+          if (welcomeName) welcomeName.textContent = fullName;
 
-                // Mise à jour du bloc "Habilitations & Grade"
-                const profileGradeTitle = document.getElementById('profile-grade-title');
-                const qualifJudiciaire = document.getElementById('qualification-judiciaire');
-                if (profileGradeTitle) profileGradeTitle.innerText = gradeText;
-                if (qualifJudiciaire) qualifJudiciaire.innerText = qualiteText;
+          // Mise à jour du bloc "Habilitations & Grade"
+          const profileGradeTitle = document.getElementById('profile-grade-title');
+          const qualifJudiciaire = document.getElementById('qualification-judiciaire');
+          if (profileGradeTitle) profileGradeTitle.textContent = gradeText;
+          if (qualifJudiciaire) qualifJudiciaire.textContent = qualiteText;
 
-            } catch (e) {
-                console.error("Erreur lors de la lecture des données utilisateur :", e);
-            }
+        } catch (e) {
+          console.error("Erreur lors de la lecture des données utilisateur :", e);
         }
+      }
     });
   </script>
 
