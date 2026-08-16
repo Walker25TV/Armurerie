@@ -67,6 +67,8 @@ const gradeIcons = {
 };
 
 let tempDiscordAgent = null;
+let editingOrgAgentIndex = null; // Stocke l'index en cas de modification d'un agent existant
+
 const BIN_ID = "6a6bec81f5f4af5e29d80b84";
 const MASTER_KEY = "$2a$10$4QakocWzyo.QhFvScjsxXeXgsqEMnDvF4HHcLZtPWgrhRem/QURS.";
 const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -327,7 +329,14 @@ function closeDeleteModal() { indexToDelete = null; document.getElementById('del
 
 function openAddAgentModal() { 
   tempDiscordAgent = null;
-  const idsToClear = ['modal-input-discord', 'modal-preview-name', 'modal-preview-grade', 'modal-preview-qualif', 'modal-preview-service', 'modal-input-rio', 'modal-input-phone'];
+  editingOrgAgentIndex = null;
+  
+  // Remise à zéro de l'affichage d'édition si nécessaire
+  if (typeof isModalEditing !== 'undefined' && isModalEditing) {
+    if (typeof toggleModalEditMode === 'function') toggleModalEditMode();
+  }
+
+  const idsToClear = ['modal-input-discord', 'modal-preview-name', 'modal-preview-grade', 'modal-preview-qualif', 'modal-preview-service', 'modal-input-rio', 'modal-input-phone', 'modal-input-name', 'modal-input-grade', 'modal-input-qualif', 'modal-input-service'];
   idsToClear.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -335,6 +344,7 @@ function openAddAgentModal() {
       else el.innerText = '—';
     }
   });
+
   document.getElementById('add-agent-modal').classList.remove('hidden'); 
 }
 
@@ -372,7 +382,7 @@ async function fetchDiscordData(event) {
       specialite: data.specialite || "Aucune"
     };
 
-    // Mise à jour ciblée avec les IDs exacts du HTML
+    // Mise à jour des éléments visuels et des champs de saisie
     const elName = document.getElementById('modal-preview-name');
     const elGrade = document.getElementById('modal-preview-grade');
     const elQualif = document.getElementById('modal-preview-qualif');
@@ -383,18 +393,85 @@ async function fetchDiscordData(event) {
     if (elQualif) elQualif.innerText = tempDiscordAgent.qualiteJudiciaire;
     if (elSpe) elSpe.innerText = tempDiscordAgent.specialite;
 
+    const nameInput = document.getElementById('modal-input-name');
+    const gradeInput = document.getElementById('modal-input-grade');
+    const qualifInput = document.getElementById('modal-input-qualif');
+    const serviceInput = document.getElementById('modal-input-service');
+
+    if (nameInput) nameInput.value = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
+    if (gradeInput) gradeInput.value = tempDiscordAgent.grade;
+    if (qualifInput) qualifInput.value = tempDiscordAgent.qualiteJudiciaire;
+    if (serviceInput) serviceInput.value = tempDiscordAgent.specialite;
+
   } catch (e) { 
     console.error("Erreur lors de la récupération Discord :", e);
     alert("Impossible de communiquer avec le serveur.");
   }
 }
 
-// Validation de l'ajout d'un agent dans l'organigramme (nom aligné avec le HTML)
+// Fonction pour éditer un agent existant depuis le tableau
+function editOrgAgent(index) {
+  const agent = dbData.organigramme[index];
+  if (!agent) return;
+
+  editingOrgAgentIndex = index;
+  tempDiscordAgent = { ...agent };
+
+  openAddAgentModal();
+
+  // Remplissage des champs de la modale avec les données de l'agent
+  const idInput = document.getElementById('modal-input-discord');
+  if (idInput) idInput.value = agent.discordId || "";
+
+  const elName = document.getElementById('modal-preview-name');
+  const elGrade = document.getElementById('modal-preview-grade');
+  const elQualif = document.getElementById('modal-preview-qualif');
+  const elSpe = document.getElementById('modal-preview-service');
+
+  if (elName) elName.innerText = `${agent.prenom || ''} ${agent.nom || ''}`.trim();
+  if (elGrade) elGrade.innerText = agent.grade || '—';
+  if (elQualif) elQualif.innerText = agent.qualiteJudiciaire || agent.qualif || '—';
+  if (elSpe) elSpe.innerText = agent.specialite || '—';
+
+  const rioInput = document.getElementById('modal-input-rio');
+  const phoneInput = document.getElementById('modal-input-phone');
+  const statusInput = document.getElementById('modal-input-statut');
+  const intranetInput = document.getElementById('modal-input-intranet');
+
+  if (rioInput) rioInput.value = agent.rio || "";
+  if (phoneInput) phoneInput.value = agent.phone || "";
+  if (statusInput) statusInput.value = agent.status || "ACTIF";
+  if (intranetInput) intranetInput.checked = agent.intranetAccess !== false;
+}
+
+// Validation de l'ajout / modification d'un agent dans l'organigramme
 async function handleModalAddOrgAgent(event) {
   event.preventDefault();
 
-  if (!tempDiscordAgent) {
-    return alert("Veuillez d'abord charger un utilisateur Discord valide.");
+  // Lecture des valeurs éditables si le mode d'édition manuelle est ouvert
+  const nameInput = document.getElementById('modal-input-name')?.value.trim();
+  const gradeInput = document.getElementById('modal-input-grade')?.value.trim();
+  const qualifInput = document.getElementById('modal-input-qualif')?.value.trim();
+  const serviceInput = document.getElementById('modal-input-service')?.value.trim();
+
+  let finalNom = tempDiscordAgent ? tempDiscordAgent.nom : "";
+  let finalPrenom = tempDiscordAgent ? tempDiscordAgent.prenom : "";
+  let finalGrade = tempDiscordAgent ? tempDiscordAgent.grade : "";
+  let finalQualif = tempDiscordAgent ? tempDiscordAgent.qualiteJudiciaire : "";
+  let finalSpecialite = tempDiscordAgent ? tempDiscordAgent.specialite : "Aucune";
+
+  // Si des valeurs manuelles ont été saisies
+  if (nameInput) {
+    const parts = nameInput.split(/\s+/);
+    finalPrenom = parts[0] || "";
+    finalNom = parts.slice(1).join(' ') || "";
+  }
+  if (gradeInput) finalGrade = gradeInput;
+  if (qualifInput) finalQualif = qualifInput;
+  if (serviceInput) finalSpecialite = serviceInput;
+
+  if (!finalNom && !finalPrenom) {
+    return alert("Veuillez charger un utilisateur Discord ou renseigner le nom/prénom.");
   }
 
   const rio = document.getElementById('modal-input-rio')?.value.trim() || "";
@@ -404,15 +481,25 @@ async function handleModalAddOrgAgent(event) {
   const intranetAccessEl = document.getElementById('modal-input-intranet');
   const intranetAccess = intranetAccessEl ? intranetAccessEl.checked : true;
 
-  const newAgent = {
-    ...tempDiscordAgent,
+  const agentData = {
+    discordId: tempDiscordAgent ? tempDiscordAgent.discordId : "",
+    nom: finalNom,
+    prenom: finalPrenom,
+    grade: finalGrade,
+    qualiteJudiciaire: finalQualif,
+    specialite: finalSpecialite,
     rio: rio,
     phone: phone,
     status: status,
     intranetAccess: intranetAccess
   };
 
-  dbData.organigramme.push(newAgent);
+  if (editingOrgAgentIndex !== null) {
+    dbData.organigramme[editingOrgAgentIndex] = agentData;
+  } else {
+    dbData.organigramme.push(agentData);
+  }
+
   await saveData();
   renderOrganigrammeTable();
   closeAddAgentModal();
@@ -454,7 +541,11 @@ function renderOrganigrammeTable() {
             ${agent.status || 'ACTIF'}
           </span>
         </td>
-        <td class="py-3.5 px-6 text-right">
+        <td class="py-3.5 px-6 text-right flex items-center justify-end space-x-3">
+          <button type="button" onclick="editOrgAgent(${index})" class="text-blue-900 hover:text-blue-700 font-bold text-xs uppercase tracking-wider flex items-center space-x-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            <span>ÉDITER</span>
+          </button>
           <button type="button" onclick="openOrgDeleteModal(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-wider">SUPPRIMER</button>
         </td>
       </tr>
