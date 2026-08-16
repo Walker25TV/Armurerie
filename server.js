@@ -69,11 +69,12 @@ app.get('/auth/discord/callback', async (req, res) => {
     const userId = memberResponse.data.user.id;
     const userRoles = memberResponse.data.roles || [];
 
-    // Identifiants des rôles administrateurs Discord
+    // Identifiants des rôles autorisés sur l'intranet
     const ROLE_ARMURERIE = "1521576291722330354";
     const ROLE_COMMANDEMENT = "1521576207299383386";
+    const ROLE_NOUVEAU = "1521576237493915789"; // Ton nouveau rôle
 
-    const hasAdminRole = userRoles.includes(ROLE_COMMANDEMENT) || userRoles.includes(ROLE_ARMURERIE);
+    const hasAdminRole = userRoles.includes(ROLE_COMMANDEMENT) || userRoles.includes(ROLE_ARMURERIE) || userRoles.includes(ROLE_NOUVEAU);
 
     // Dynamic Check : Interrogation de la base de données JSONBin pour vérifier l'accès individuel (Case Intranet)
     let isAuthorizedInDb = false;
@@ -91,7 +92,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       console.error("Erreur d'accès à la base de données JSONBin lors de l'auth :", dbErr.message);
     }
 
-    // Autorisation accordée si rôle admin Discord OU coché dans l'organigramme
+    // Autorisation accordée si rôle autorisé Discord OU coché dans l'organigramme
     if (hasAdminRole || isAuthorizedInDb) {
       const rolesParam = encodeURIComponent(JSON.stringify(userRoles));
       return res.redirect(`/index.html?auth=success&discord_id=${userId}&roles=${rolesParam}`);
@@ -142,7 +143,7 @@ app.get('/api/discord-user/:id', async (req, res) => {
     res.json({
       success: true,
       displayName: displayName,
-      roles: userRoleNames // Renvoie la liste des NOMS de rôles (ex: ["Capitaine", "OPJ"])
+      roles: userRoleNames
     });
   } catch (error) {
     console.error("Erreur API Discord Bot :", error.response?.data || error.message);
