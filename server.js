@@ -197,20 +197,57 @@ app.get('/api/discord-user/:id', async (req, res) => {
 
     // 3. Détection de la Qualité Judiciaire (QJ)
     const QJ_LIST = ["OPJ", "APJ", "APJA"];
-    let qualiteJudiciaire = userRoleNames.find(r => 
-      QJ_LIST.includes(r.toUpperCase().trim())
-    );
     
-    if (!qualiteJudiciaire) {
+    // Recherche par rôle Discord
+    let qualiteJudiciaire = userRoleNames.find(r => {
+      const upperRole = r.toUpperCase().trim();
+      return QJ_LIST.includes(upperRole) || 
+             upperRole.includes("OFFICIER DE POLICE JUDICIAIRE") || 
+             upperRole.includes("AGENT DE POLICE JUDICIAIRE");
+    });
+
+    if (qualiteJudiciaire) {
+      const upperQJ = qualiteJudiciaire.toUpperCase();
+      if (upperQJ.includes("OPJ") || upperQJ.includes("OFFICIER DE POLICE JUDICIAIRE")) qualiteJudiciaire = "OPJ";
+      else if (upperQJ.includes("APJA")) qualiteJudiciaire = "APJA";
+      else if (upperQJ.includes("APJ")) qualiteJudiciaire = "APJ";
+    } else {
+      // Recherche par texte dans le nom d'affichage brut
       const upperName = rawDisplayName.toUpperCase();
       if (upperName.includes("OPJ")) qualiteJudiciaire = "OPJ";
       else if (upperName.includes("APJA")) qualiteJudiciaire = "APJA";
       else if (upperName.includes("APJ")) qualiteJudiciaire = "APJ";
-      else qualiteJudiciaire = "Aucune";
+    }
+
+    // Fallback automatique selon le grade si aucune QJ n'a été détectée
+    if (!qualiteJudiciaire || qualiteJudiciaire === "Aucune") {
+      const upperGrade = grade.toUpperCase();
+      if (
+        upperGrade.includes("CAPITAINE") || 
+        upperGrade.includes("LIEUTENANT") || 
+        upperGrade.includes("COMMANDANT") || 
+        upperGrade.includes("COMMISSAIRE") || 
+        upperGrade.includes("MAJOR")
+      ) {
+        qualiteJudiciaire = "OPJ";
+      } else if (
+        upperGrade.includes("BRIGADIER") || 
+        upperGrade.includes("GARDIEN")
+      ) {
+        qualiteJudiciaire = "APJ";
+      } else if (upperGrade.includes("ELÈVE") || upperGrade.includes("ELEVE")) {
+        qualiteJudiciaire = "APJA";
+      } else {
+        qualiteJudiciaire = "Aucune";
+      }
     }
 
     // 4. Détection de la Spécialité
-    const SPE_KEYWORDS = ["PJ", "BAC", "GSP", "BRR", "USL", "SI", "BRI", "GIGN", "RAID"];
+    const SPE_KEYWORDS = [
+      "PJ", "BAC", "GSP", "BRR", "USL", "SI", "BRI", "GIGN", "RAID", 
+      "CRS", "FORMATEUR", "FTSI", "MOTORISEE", "BAC NUIT"
+    ];
+
     let specialite = userRoleNames.find(r => 
       SPE_KEYWORDS.some(k => r.toUpperCase().includes(k))
     );
@@ -221,9 +258,10 @@ app.get('/api/discord-user/:id', async (req, res) => {
       if (foundSpe) {
         specialite = foundSpe;
       } else {
-        const speMatch = rawDisplayName.match(/\[(.*?)\]/g);
-        if (speMatch && speMatch.length > 1) {
-          specialite = speMatch[1].replace(/[\[\]]/g, '');
+        // Sélectionne le dernier groupe entre crochets [...] qui correspond généralement à la spécialité
+        const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
+        if (speMatches.length > 0) {
+          specialite = speMatches[speMatches.length - 1][1];
         } else {
           specialite = "Aucune";
         }
