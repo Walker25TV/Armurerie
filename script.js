@@ -94,21 +94,33 @@ function parseDiscordPseudo(rawPseudo) {
 function syncUserDataWithOrganigramme() {
   let matchedAgent = null;
 
-  if (currentDiscordId && dbData.organigramme) {
-    matchedAgent = dbData.organigramme.find(a => String(a.discordId) === String(currentDiscordId));
+  const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || "";
+  const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
+  const searchNom = (urlParamsScript.get('nom') || parsedPseudo.nom).toUpperCase();
+  const searchPrenom = (urlParamsScript.get('prenom') || parsedPseudo.prenom).toLowerCase();
+
+  if (dbData.organigramme && dbData.organigramme.length > 0) {
+    // 1. Recherche par ID Discord
+    if (currentDiscordId) {
+      matchedAgent = dbData.organigramme.find(a => String(a.discordId) === String(currentDiscordId));
+    }
+    // 2. Recherche par Nom / Prénom si non trouvé par ID
+    if (!matchedAgent && searchNom) {
+      matchedAgent = dbData.organigramme.find(a => 
+        (a.nom || '').toUpperCase() === searchNom && 
+        (a.prenom || '').toLowerCase() === searchPrenom
+      );
+    }
   }
 
   if (matchedAgent) {
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
-    dynamicGrade = matchedAgent.grade || "Agent";
+    dynamicGrade = matchedAgent.grade || "Sous-Brigadier";
     dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
   } else {
-    const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || "";
-    const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
-    
-    formattedNom = (urlParamsScript.get('nom') || parsedPseudo.nom).toUpperCase();
-    formattedPrenom = urlParamsScript.get('prenom') || parsedPseudo.prenom;
+    formattedNom = searchNom;
+    formattedPrenom = searchPrenom.charAt(0).toUpperCase() + searchPrenom.slice(1);
     dynamicGrade = detectGradeFromRoles(userRoles);
     dynamicQualif = detectQualificationFromGrade(dynamicGrade);
   }
@@ -121,16 +133,24 @@ function detectGradeFromRoles(rolesList) {
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade');
   if (urlGrade) return urlGrade;
 
+  // 1. Vérification par ID de rôle mappé
   for (const roleId of rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
   }
 
-  for (const grade of ordreGrades) {
-    if (rolesList.some(r => String(r).toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
-      return grade;
+  // 2. Vérification par nom de rôle nettoyé (enlève symboles et émojis comme 🔵 | ... ▞▞▞)
+  for (const role of rolesList) {
+    const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+
+    for (const grade of ordreGrades) {
+      const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+      if (roleClean.includes(gradeClean)) {
+        return grade;
+      }
     }
   }
-  return "Capitaine-Stagiaire";
+
+  return "Sous-Brigadier";
 }
 
 function detectQualificationFromGrade(grade) {
