@@ -105,7 +105,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// 7. Route API corrigée pour récupérer un membre Discord avec fallback global
+// 7. Route API pour récupérer un membre Discord et parser son profil (Grade, Spé, QJ, Nom)
 app.get('/api/discord-user/:id', async (req, res) => {
   const userId = req.params.id.trim();
   const botToken = process.env.DISCORD_BOT_TOKEN || process.env.BOT_TOKEN;
@@ -153,13 +153,64 @@ app.get('/api/discord-user/:id', async (req, res) => {
       memberData = { user: userResponse.data };
     }
 
-    // Extraction du nom d'affichage
-    const displayName = memberData.nick || memberData.user.global_name || memberData.user.username;
+    // Nom d'affichage brut
+    const rawDisplayName = memberData.nick || memberData.user.global_name || memberData.user.username;
+
+    // 1. Extraction Prénom & Nom RP (supprime les préfixes entre crochets ex: "[S/B] [PJ-EQT] Pearce AISEN" -> "Pearce AISEN")
+    const cleanName = rawDisplayName.replace(/\[.*?\]/g, '').trim() || rawDisplayName;
+
+    // 2. Détection du Grade depuis les rôles Discord
+    const GRADELIST = [
+      "Elève Gardien de la Paix", "Gardien de la Paix", "Sous-Brigadier", 
+      "Brigadier", "Brigadier-Chef", "Major", "Major REX", 
+      "Lieutenant", "Capitaine", "Commandant", "Commissaire"
+    ];
+    let grade = userRoleNames.find(r => GRADELIST.includes(r)) || "Non défini";
+
+    // Fallback Grade si non trouvé dans les rôles mais présent dans le pseudo (ex: [S/B])
+    if (grade === "Non défini") {
+      if (rawDisplayName.includes("[S/B]")) grade = "Sous-Brigadier";
+      else if (rawDisplayName.includes("[GDK]")) grade = "Gardien de la Paix";
+      else if (rawDisplayName.includes("[BRG]")) grade = "Brigadier";
+      else if (rawDisplayName.includes("[BC]")) grade = "Brigadier-Chef";
+      else if (rawDisplayName.includes("[MJR]")) grade = "Major";
+      else if (rawDisplayName.includes("[LTN]")) grade = "Lieutenant";
+      else if (rawDisplayName.includes("[CPT]")) grade = "Capitaine";
+      else if (rawDisplayName.includes("[CDT]")) grade = "Commandant";
+    }
+
+    // 3. Détection de la Qualité Judiciaire (QJ)
+    const QJ_LIST = ["OPJ", "APJ", "APJA"];
+    let qualiteJudiciaire = userRoleNames.find(r => QJ_LIST.includes(r));
+    
+    if (!qualiteJudiciaire) {
+      if (rawDisplayName.includes("[OPJ]")) qualiteJudiciaire = "OPJ";
+      else if (rawDisplayName.includes("[APJ]")) qualiteJudiciaire = "APJ";
+      else if (rawDisplayName.includes("[APJA]")) qualiteJudiciaire = "APJA";
+      else qualiteJudiciaire = "Aucune";
+    }
+
+    // 4. Détection de la Spécialité
+    const SPE_KEYWORDS = ["PJ", "BAC", "GSP", "BRR", "USL", "SI", "BRI", "GIGN", "RAID"];
+    let specialite = userRoleNames.find(r => SPE_KEYWORDS.some(k => r.toUpperCase().includes(k)));
+
+    if (!specialite) {
+      const speMatch = rawDisplayName.match(/\[(.*?)\]/g);
+      if (speMatch && speMatch.length > 1) {
+        specialite = speMatch[1].replace(/[\[\]]/g, '');
+      } else {
+        specialite = "Aucune";
+      }
+    }
 
     return res.json({
       success: true,
-      displayName: displayName,
+      displayName: cleanName,
+      rawDisplayName: rawDisplayName,
       username: memberData.user.username,
+      grade: grade,
+      qualiteJudiciaire: qualiteJudiciaire,
+      specialite: specialite,
       roles: userRoleNames
     });
 
