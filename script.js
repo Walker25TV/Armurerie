@@ -35,34 +35,34 @@ const ordreGrades = [
   "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
 ];
 
-// Chemins des images locales configurés exactement selon tes fichiers
+// Chemins des images locales configurés avec le dossier Images/grades/
 const gradeIcons = {
   // --- Commissaires ---
-  "Commissaire Général": "COMG.png",
-  "Commissaire Divisionnaire": "Commissaire Divisionnaire.png",
-  "Commissaire de Police": "Comissaire De Police.png",
-  "Elève Commissaire": "Élève Comissaire.png",
+  "Commissaire Général": "Images/grades/COMG.png",
+  "Commissaire Divisionnaire": "Images/grades/Commissaire Divisionnaire.png",
+  "Commissaire de Police": "Images/grades/Comissaire De Police.png",
+  "Elève Commissaire": "Images/grades/Élève Comissaire.png",
 
   // --- Officiers / Commandants / Capitaines / Lieutenants ---
-  "Commandant Divisionnaire": "Commandant Divisionnaire.png",
-  "Commandant": "Commandant De Police.png",
-  "Capitaine": "Capitaine De Police.png",
-  "Lieutenant": "Lieutenant De Police.png",
-  "Capitaine-Stagiaire": "Capitaine Stagiaire.png",
-  "Elève-Capitaine": "Élève Lieutenant.png", // Mapped sur Élève Lieutenant.png
+  "Commandant Divisionnaire": "Images/grades/Commandant Divisionnaire.png",
+  "Commandant": "Images/grades/Commandant De Police.png",
+  "Capitaine": "Images/grades/Capitaine De Police.png",
+  "Lieutenant": "Images/grades/Lieutenant De Police.png",
+  "Capitaine-Stagiaire": "Images/grades/Capitaine Stagiaire.png",
+  "Elève-Capitaine": "Images/grades/Élève Lieutenant.png",
 
   // --- Majors & Brigadiers ---
-  "Major Exceptionnel": "MEEX.png",
-  "Major": "Major de Police.png",
-  "Brigadier-Chef": "Brigadier-Chef.png",
-  "Brigadier": "Brigadier De Police.png",
-  "Sous-Brigadier": "Sous Brigadier.png",
+  "Major Exceptionnel": "Images/grades/MEEX.png",
+  "Major": "Images/grades/Major de Police.png",
+  "Brigadier-Chef": "Images/grades/Brigadier-Chef.png",
+  "Brigadier": "Images/grades/Brigadier De Police.png",
+  "Sous-Brigadier": "Images/grades/Sous Brigadier.png",
 
   // --- Gardiens de la Paix & Adjoints ---
-  "Gardien de la Paix": "Gardien De La Paix.png",
-  "Gardien de la Paix Stagiaire": "GPXS.png",
-  "Elève Gardien de la Paix": "E-GPX.png",
-  "Policier Adjoint": "PA.png"
+  "Gardien de la Paix": "Images/grades/Gardien De La Paix.png",
+  "Gardien de la Paix Stagiaire": "Images/grades/GPXS.png",
+  "Elève Gardien de la Paix": "Images/grades/E-GPX.png",
+  "Policier Adjoint": "Images/grades/PA.png"
 };
 
 let tempDiscordAgent = null;
@@ -338,7 +338,6 @@ async function fetchDiscordData() {
       return;
     }
 
-    // Nettoyage du pseudo Discord
     let cleanedName = data.displayName.replace(/\[.*?\]/g, '').trim();
     const nameParts = cleanedName.split(/\s+/);
     
@@ -347,7 +346,6 @@ async function fetchDiscordData() {
 
     const userRoles = (data.roles || []).map(r => r.toString());
 
-    // Détection du Grade
     let detectedGrade = "Gardien de la Paix";
     
     for (const gradeOption of ordreGrades) {
@@ -364,7 +362,6 @@ async function fetchDiscordData() {
       }
     }
 
-    // Détection de la Qualification Judiciaire
     let detectedQualif = "Agent de Police Judiciaire";
     if (userRoles.some(r => /OPJ|Officier de Police Judiciaire/i.test(r))) {
       detectedQualif = "Officier de Police Judiciaire";
@@ -372,7 +369,6 @@ async function fetchDiscordData() {
       detectedQualif = "APJ Article 73";
     }
 
-    // Détection du Service / Spécialité
     let detectedService = "Générale";
     const servicesList = ["CRS", "BAC", "CSI", "PS", "PJ", "RAID", "BRI", "GSP", "USL"];
 
@@ -393,7 +389,6 @@ async function fetchDiscordData() {
       specialite: detectedService
     };
 
-    // Mise à jour de la prévisualisation dans la modale
     document.getElementById('modal-preview-name').innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
     document.getElementById('modal-preview-grade').innerText = tempDiscordAgent.grade;
     document.getElementById('modal-preview-qualif').innerText = tempDiscordAgent.qualification;
