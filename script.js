@@ -138,11 +138,13 @@ function detectGradeFromRoles(rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
   }
 
-  // 2. Vérification par nom de rôle nettoyé (enlève symboles et émojis comme 🔵 | ... ▞▞▞)
+  // 2. Tri par longueur décroissante pour tester "Capitaine-Stagiaire" ou "Elève-Capitaine" AVANT "Capitaine"
+  const gradesTries = [...ordreGrades].sort((a, b) => b.length - a.length);
+
   for (const role of rolesList) {
     const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
 
-    for (const grade of ordreGrades) {
+    for (const grade of gradesTries) {
       const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
       if (roleClean.includes(gradeClean)) {
         return grade;
