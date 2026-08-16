@@ -70,11 +70,11 @@ app.get('/auth/discord/callback', async (req, res) => {
     const userRoles = memberResponse.data.roles || [];
 
     // Identifiants des rôles autorisés sur l'intranet
-    const ROLE_ARMURERIE = "1521576291722330354";
+    const ROLE_POLICE_NATIONALE = "1521576237493915789";
     const ROLE_COMMANDEMENT = "1521576207299383386";
-    const ROLE_NOUVEAU = "1521576237493915789";
 
-    const hasAdminRole = userRoles.includes(ROLE_COMMANDEMENT) || userRoles.includes(ROLE_ARMURERIE) || userRoles.includes(ROLE_NOUVEAU);
+    // Seuls les membres Police Nationale ou Commandement sont autorisés par rôle
+    const hasAdminRole = userRoles.includes(ROLE_POLICE_NATIONALE) || userRoles.includes(ROLE_COMMANDEMENT);
 
     // Dynamic Check : Interrogation de la base de données JSONBin
     let isAuthorizedInDb = false;
