@@ -1,9 +1,24 @@
 // ==================== RECUPERATION DES INFORMATIONS DISCORD ET UTILS ====================
 const urlParamsScript = new URLSearchParams(window.location.search);
 
-// Valeurs neutres par défaut (évite l'affichage de tes infos pour les autres)
-const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || "INCONNU";
-const rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || "Agent";
+// Fonction pour nettoyer le pseudo Discord (ex: "[TL-S-206] WALKER Chris" -> Nom: WALKER, Prénom: Chris)
+function parseDiscordPseudo(rawPseudo) {
+  if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
+  const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
+  const parts = cleanPseudo.split(/\s+/);
+  return {
+    nom: (parts[0] || "INCONNU").toUpperCase(),
+    prenom: parts.slice(1).join(' ') || "Agent"
+  };
+}
+
+// Récupération brute (URL -> SessionStorage -> Valeurs par défaut neutres)
+const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "";
+const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
+
+const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
+const rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || parsedPseudo.prenom;
+
 const formattedNom = rawNom.toUpperCase();
 const formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
 const fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
@@ -188,8 +203,10 @@ async function fetchDiscordData() {
     const res = await fetch(`/api/discord-user/${id}`);
     const data = await res.json();
     if (!data.success) return alert("Utilisateur introuvable.");
-    let nameParts = data.displayName.replace(/\[.*?\]/g, '').trim().split(/\s+/);
-    tempDiscordAgent = { discordId: id, nom: nameParts[0].toUpperCase(), prenom: nameParts.slice(1).join(' '), grade: "Gardien de la Paix" };
+    
+    // Utilisation de la fonction de nettoyage automatique des crochets
+    const parsed = parseDiscordPseudo(data.displayName);
+    tempDiscordAgent = { discordId: id, nom: parsed.nom, prenom: parsed.prenom, grade: "Gardien de la Paix" };
     document.getElementById('modal-preview-name').innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
   } catch (e) { console.error(e); }
 }
