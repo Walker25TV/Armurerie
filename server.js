@@ -172,27 +172,37 @@ app.get('/api/discord-user/:id', async (req, res) => {
     // 1. Extraction Prénom & Nom RP
     const cleanName = rawDisplayName.replace(/\[.*?\]/g, '').trim() || rawDisplayName;
 
-    // 2. Détection du Grade depuis les rôles Discord (insensible aux majuscules/espaces)
-    const GRADELIST = [
-      "Elève Gardien de la Paix", "Gardien de la Paix", "Sous-Brigadier", 
-      "Brigadier", "Brigadier-Chef", "Major", "Major REX", 
-      "Lieutenant", "Capitaine", "Commandant", "Commissaire"
+    // 2. Détection du Grade (ordre hiérarchique décroissant pour attribuer le plus haut grade)
+    const GRADELIST_HIERARCHICAL = [
+      "Commissaire Général", "Commissaire Divisionnaire", "Commissaire Principal", "Commissaire",
+      "Commandant", "Capitaine", "Lieutenant", 
+      "Major REX", "Major", "Brigadier-Chef", "Brigadier", "Sous-Brigadier", 
+      "Gardien de la Paix", "Elève Gardien de la Paix"
     ];
-    let grade = userRoleNames.find(r => 
-      GRADELIST.some(g => g.toLowerCase() === r.trim().toLowerCase())
-    ) || "Non défini";
+
+    let grade = "Non défini";
+
+    // Recherche dans les rôles Discord (par inclusion partielle ou exacte)
+    for (const g of GRADELIST_HIERARCHICAL) {
+      const matchRole = userRoleNames.find(r => r.toLowerCase().includes(g.toLowerCase()));
+      if (matchRole) {
+        grade = g;
+        break;
+      }
+    }
 
     // Fallback Grade si non trouvé dans les rôles mais présent dans le pseudo
     if (grade === "Non défini") {
       const upperName = rawDisplayName.toUpperCase();
-      if (upperName.includes("S/B")) grade = "Sous-Brigadier";
-      else if (upperName.includes("GDK") || upperName.includes("GPX")) grade = "Gardien de la Paix";
-      else if (upperName.includes("BRG") || upperName.includes("BRIGADIER")) grade = "Brigadier";
-      else if (upperName.includes("BC") || upperName.includes("BRIGADIER-CHEF")) grade = "Brigadier-Chef";
-      else if (upperName.includes("MJR") || upperName.includes("MAJOR")) grade = "Major";
-      else if (upperName.includes("LTN") || upperName.includes("LIEUTENANT")) grade = "Lieutenant";
-      else if (upperName.includes("CPT") || upperName.includes("CAPITAINE")) grade = "Capitaine";
+      if (upperName.includes("COMMISSAIRE") || upperName.includes("COM")) grade = "Commissaire";
       else if (upperName.includes("CDT") || upperName.includes("COMMANDANT")) grade = "Commandant";
+      else if (upperName.includes("CPT") || upperName.includes("CAPITAINE")) grade = "Capitaine";
+      else if (upperName.includes("LTN") || upperName.includes("LIEUTENANT")) grade = "Lieutenant";
+      else if (upperName.includes("MJR") || upperName.includes("MAJOR")) grade = "Major";
+      else if (upperName.includes("BC") || upperName.includes("BRIGADIER-CHEF")) grade = "Brigadier-Chef";
+      else if (upperName.includes("BRG") || upperName.includes("BRIGADIER")) grade = "Brigadier";
+      else if (upperName.includes("S/B")) grade = "Sous-Brigadier";
+      else if (upperName.includes("GDK") || upperName.includes("GPX") || upperName.includes("GARDIEN")) grade = "Gardien de la Paix";
     }
 
     // 3. Détection de la Qualité Judiciaire (QJ)
@@ -223,10 +233,10 @@ app.get('/api/discord-user/:id', async (req, res) => {
     if (!qualiteJudiciaire || qualiteJudiciaire === "Aucune") {
       const upperGrade = grade.toUpperCase();
       if (
+        upperGrade.includes("COMMISSAIRE") ||
+        upperGrade.includes("COMMANDANT") ||
         upperGrade.includes("CAPITAINE") || 
         upperGrade.includes("LIEUTENANT") || 
-        upperGrade.includes("COMMANDANT") || 
-        upperGrade.includes("COMMISSAIRE") || 
         upperGrade.includes("MAJOR")
       ) {
         qualiteJudiciaire = "OPJ";
@@ -242,48 +252,53 @@ app.get('/api/discord-user/:id', async (req, res) => {
       }
     }
 
-    // 4. Détection de la Spécialité (Hiérarchie : Responsable/Chef > Adjoint > Formateur > Membre)
+    // 4. Détection de la Spécialité
     let specialite = "Aucune";
     const fullText = (rawDisplayName + " " + userRoleNames.join(" ")).toUpperCase();
 
-    // Détection de la fonction/poste
-    let prefixe = "";
-    if (fullText.includes("RESPONSABLE") || fullText.includes("RESP")) {
-      prefixe = "Responsable";
-    } else if (fullText.includes("CHEF DE") || fullText.includes("CHEF")) {
-      prefixe = "Chef";
-    } else if (fullText.includes("ADJOINT")) {
-      prefixe = "Adjoint";
-    } else if (fullText.includes("FORMATEUR") || fullText.includes("FTSI")) {
-      prefixe = "Formateur";
-    }
-
-    // Association de la fonction avec la spécialité
-    const UNITS = [
-      { key: "CRS", label: "CRS" },
-      { key: "BAC", label: "BAC" },
-      { key: "GSP", label: "GSP" },
-      { key: "BRI", label: "BRI" },
-      { key: "RAID", label: "RAID" },
-      { key: "PJ", label: "PJ" },
-      { key: "BRR", label: "BRR" },
-      { key: "USL", label: "USL" },
-      { key: "SI", label: "SI" }
-    ];
-
-    const detectedUnit = UNITS.find(unit => fullText.includes(unit.key));
-
-    if (detectedUnit) {
-      specialite = prefixe ? `${prefixe} ${detectedUnit.label}` : detectedUnit.label;
+    // Cas particulier : Les commissaires / direction générale couvrent "Toutes spécialités"
+    if (grade.toUpperCase().includes("COMMISSAIRE") || fullText.includes("DIRECTION") || fullText.includes("ETAT-MAJOR")) {
+      specialite = "Toutes spécialités";
     } else {
-      // Fallback : Extraction du dernier crochet [...] avec nettoyage
-      const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
-      if (speMatches.length > 0) {
-        let extracted = speMatches[speMatches.length - 1][1]
-          .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-          .replace(/[|:-]/g, '')
-          .trim();
-        specialite = extracted || "Aucune";
+      // Détection de la fonction/poste pour les autres gradés
+      let prefixe = "";
+      if (fullText.includes("RESPONSABLE") || fullText.includes("RESP")) {
+        prefixe = "Responsable";
+      } else if (fullText.includes("CHEF DE") || fullText.includes("CHEF")) {
+        prefixe = "Chef";
+      } else if (fullText.includes("ADJOINT")) {
+        prefixe = "Adjoint";
+      } else if (fullText.includes("FORMATEUR") || fullText.includes("FTSI")) {
+        prefixe = "Formateur";
+      }
+
+      // Association de la fonction avec la spécialité
+      const UNITS = [
+        { key: "CRS", label: "CRS" },
+        { key: "BAC", label: "BAC" },
+        { key: "GSP", label: "GSP" },
+        { key: "BRI", label: "BRI" },
+        { key: "RAID", label: "RAID" },
+        { key: "PJ", label: "PJ" },
+        { key: "BRR", label: "BRR" },
+        { key: "USL", label: "USL" },
+        { key: "SI", label: "SI" }
+      ];
+
+      const detectedUnit = UNITS.find(unit => fullText.includes(unit.key));
+
+      if (detectedUnit) {
+        specialite = prefixe ? `${prefixe} ${detectedUnit.label}` : detectedUnit.label;
+      } else {
+        // Fallback : Extraction du dernier crochet [...] avec nettoyage
+        const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
+        if (speMatches.length > 0) {
+          let extracted = speMatches[speMatches.length - 1][1]
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+            .replace(/[|:-]/g, '')
+            .trim();
+          specialite = extracted || "Aucune";
+        }
       }
     }
 
