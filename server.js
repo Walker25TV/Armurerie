@@ -242,28 +242,41 @@ app.get('/api/discord-user/:id', async (req, res) => {
       }
     }
 
-    // 4. Détection de la Spécialité (Détection prioritaire + Nettoyage émojis)
+    // 4. Détection de la Spécialité (Hiérarchie : Responsable/Chef > Adjoint > Formateur > Membre)
     let specialite = "Aucune";
-    const upperRawName = rawDisplayName.toUpperCase();
-    const joinedRoles = userRoleNames.join(" ").toUpperCase();
+    const fullText = (rawDisplayName + " " + userRoleNames.join(" ")).toUpperCase();
 
-    if (joinedRoles.includes("CRS") || upperRawName.includes("CRS")) {
-      if (joinedRoles.includes("FORMATEUR") || upperRawName.includes("FORMATEUR")) {
-        specialite = "Formateur CRS";
-      } else {
-        specialite = "CRS";
-      }
-    } else if (joinedRoles.includes("BAC") || upperRawName.includes("BAC")) {
-      specialite = "BAC";
-    } else if (joinedRoles.includes("GSP") || upperRawName.includes("GSP")) {
-      specialite = "GSP";
-    } else if (joinedRoles.includes("BRI") || upperRawName.includes("BRI")) {
-      specialite = "BRI";
-    } else if (joinedRoles.includes("RAID") || upperRawName.includes("RAID")) {
-      specialite = "RAID";
-    } else if (joinedRoles.includes("PJ") || upperRawName.includes("PJ")) {
-      specialite = "PJ";
+    // Détection de la fonction/poste
+    let prefixe = "";
+    if (fullText.includes("RESPONSABLE") || fullText.includes("RESP")) {
+      prefixe = "Responsable";
+    } else if (fullText.includes("CHEF DE") || fullText.includes("CHEF")) {
+      prefixe = "Chef";
+    } else if (fullText.includes("ADJOINT")) {
+      prefixe = "Adjoint";
+    } else if (fullText.includes("FORMATEUR") || fullText.includes("FTSI")) {
+      prefixe = "Formateur";
+    }
+
+    // Association de la fonction avec la spécialité
+    const UNITS = [
+      { key: "CRS", label: "CRS" },
+      { key: "BAC", label: "BAC" },
+      { key: "GSP", label: "GSP" },
+      { key: "BRI", label: "BRI" },
+      { key: "RAID", label: "RAID" },
+      { key: "PJ", label: "PJ" },
+      { key: "BRR", label: "BRR" },
+      { key: "USL", label: "USL" },
+      { key: "SI", label: "SI" }
+    ];
+
+    const detectedUnit = UNITS.find(unit => fullText.includes(unit.key));
+
+    if (detectedUnit) {
+      specialite = prefixe ? `${prefixe} ${detectedUnit.label}` : detectedUnit.label;
     } else {
+      // Fallback : Extraction du dernier crochet [...] avec nettoyage
       const speMatches = [...rawDisplayName.matchAll(/\[(.*?)\]/g)];
       if (speMatches.length > 0) {
         let extracted = speMatches[speMatches.length - 1][1]
