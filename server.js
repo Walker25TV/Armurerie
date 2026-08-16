@@ -72,11 +72,11 @@ app.get('/auth/discord/callback', async (req, res) => {
     // Identifiants des rôles autorisés sur l'intranet
     const ROLE_ARMURERIE = "1521576291722330354";
     const ROLE_COMMANDEMENT = "1521576207299383386";
-    const ROLE_NOUVEAU = "1521576237493915789"; // Ton nouveau rôle
+    const ROLE_NOUVEAU = "1521576237493915789";
 
     const hasAdminRole = userRoles.includes(ROLE_COMMANDEMENT) || userRoles.includes(ROLE_ARMURERIE) || userRoles.includes(ROLE_NOUVEAU);
 
-    // Dynamic Check : Interrogation de la base de données JSONBin pour vérifier l'accès individuel (Case Intranet)
+    // Dynamic Check : Interrogation de la base de données JSONBin
     let isAuthorizedInDb = false;
     try {
       const dbResponse = await axios.get(API_URL, {
@@ -92,7 +92,6 @@ app.get('/auth/discord/callback', async (req, res) => {
       console.error("Erreur d'accès à la base de données JSONBin lors de l'auth :", dbErr.message);
     }
 
-    // Autorisation accordée si rôle autorisé Discord OU coché dans l'organigramme
     if (hasAdminRole || isAuthorizedInDb) {
       const rolesParam = encodeURIComponent(JSON.stringify(userRoles));
       return res.redirect(`/index.html?auth=success&discord_id=${userId}&roles=${rolesParam}`);
@@ -106,48 +105,67 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// 7. Route API pour récupérer les informations d'un membre Discord via son ID (pour le bouton CHARGER)
+// 7. Route API corrigée pour récupérer un membre Discord avec fallback global
 app.get('/api/discord-user/:id', async (req, res) => {
-  const userId = req.params.id;
+  const userId = req.params.id.trim();
   const botToken = process.env.DISCORD_BOT_TOKEN || process.env.BOT_TOKEN;
 
   if (!botToken) {
-    return res.status(500).json({ success: false, message: "Token du bot non configuré dans le fichier .env" });
+    return res.status(500).json({ success: false, message: "Token du bot non configuré." });
   }
 
+  const authHeader = { Authorization: `Bot ${botToken.trim()}` };
+
   try {
-    // Récupération du membre
-    const memberResponse = await axios.get(
-      `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${userId}`,
-      { headers: { Authorization: `Bot ${botToken}` } }
-    );
+    let memberData = null;
+    let userRoleNames = [];
 
-    // Récupération de tous les rôles du serveur
-    const rolesResponse = await axios.get(
-      `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/roles`,
-      { headers: { Authorization: `Bot ${botToken}` } }
-    );
+    // Étape 1 : Tenter de récupérer le membre directement sur le serveur (Guild)
+    try {
+      const memberResponse = await axios.get(
+        `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${userId}`,
+        { headers: authHeader }
+      );
+      memberData = memberResponse.data;
 
-    const member = memberResponse.data;
-    const allRoles = rolesResponse.data;
+      // Récupération et association des rôles du serveur
+      const rolesResponse = await axios.get(
+        `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/roles`,
+        { headers: authHeader }
+      );
+      const allRoles = rolesResponse.data;
 
-    // Association des IDs des rôles du membre avec leurs noms réels
-    const userRoleNames = (member.roles || []).map(roleId => {
-      const foundRole = allRoles.find(r => r.id === roleId);
-      return foundRole ? foundRole.name : null;
-    }).filter(Boolean);
+      userRoleNames = (memberData.roles || []).map(roleId => {
+        const foundRole = allRoles.find(r => r.id === roleId);
+        return foundRole ? foundRole.name : null;
+      }).filter(Boolean);
 
-    // Récupération du nom d'affichage (surnom sur le serveur, sinon nom global, sinon nom d'utilisateur)
-    const displayName = member.nick || member.user.global_name || member.user.username;
+    } catch (guildErr) {
+      console.warn("Échec de la recherche membre sur la Guild, tentative via l'API User globale...");
+    }
 
-    res.json({
+    // Étape 2 : Fallback sur l'utilisateur global Discord si non trouvé dans la guilde
+    if (!memberData) {
+      const userResponse = await axios.get(
+        `https://discord.com/api/v10/users/${userId}`,
+        { headers: authHeader }
+      );
+      memberData = { user: userResponse.data };
+    }
+
+    // Extraction du nom d'affichage
+    const displayName = memberData.nick || memberData.user.global_name || memberData.user.username;
+
+    return res.json({
       success: true,
       displayName: displayName,
+      username: memberData.user.username,
       roles: userRoleNames
     });
+
   } catch (error) {
     console.error("Erreur API Discord Bot :", error.response?.data || error.message);
-    res.status(404).json({ success: false, message: "Utilisateur introuvable sur le serveur Discord." });
+    return res.status(404).json({ success: false, message: "Utilisateur introuvable sur Discord." });
   }
 });
 
