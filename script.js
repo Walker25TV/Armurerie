@@ -24,7 +24,7 @@ function getUserRoles() {
 
 const userRoles = getUserRoles();
 
-// 3. Détection automatique du grade (avec valeur forcée pour toi si l'URL est vide)
+// 3. Détection automatique du grade (avec valeur de secours sécurisée)
 function detectGradeFromRoles(rolesList) {
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
   if (urlGrade) return urlGrade;
@@ -34,7 +34,7 @@ function detectGradeFromRoles(rolesList) {
     if (found) return grade;
   }
   
-  // SOLUTION DE SECOURS : Si aucun rôle n'est passé par l'URL, on force ton grade de Capitaine-Stagiaire
+  // Valeur de secours par défaut si l'URL est vide
   return "Capitaine-Stagiaire"; 
 }
 
@@ -51,7 +51,7 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// Récupération avec secours forcé si l'URL est vide (pour t'éviter de rester en "INCONNU")
+// Récupération avec secours forcé si l'URL est totalement vide
 const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "[TL-S-206] WALKER Chris";
 const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
 
