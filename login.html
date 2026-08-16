@@ -9,8 +9,8 @@
     /* Configuration du fond d'écran plein écran avec l'image locale */
     body {
       background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), 
-                          url('Images/FTSI Site.png');
-      background-size: cover;       /* L'image recouvre TOUT l'écran sans déformation */
+                        url('Images/FTSI Site.png');
+      background-size: cover;      /* L'image recouvre TOUT l'écran sans déformation */
       background-position: center;  /* L'image est centrée */
       background-repeat: no-repeat; /* Empêche la répétition */
       background-attachment: fixed; /* L'image reste fixe */
@@ -90,10 +90,16 @@
     const grade = urlParams.get('grade');
     const qualification = urlParams.get('qualification');
 
-    if (nom) sessionStorage.setItem('discord_nom', nom);
-    if (prenom) sessionStorage.setItem('discord_prenom', prenom);
-    if (grade) sessionStorage.setItem('discord_grade', grade);
-    if (qualification) sessionStorage.setItem('discord_qualif', qualification);
+    // Si les paramètres sont passés dans l'URL, on crée ou met à jour l'objet global discord_user
+    if (nom || prenom || grade || qualification) {
+        const userData = {
+            nom: nom || "WALKER",
+            prenom: prenom || "Chris",
+            grade: grade || "CAPITAINE STAGIAIRE",
+            qualite: qualification || "Officier de Police Judiciaire"
+        };
+        sessionStorage.setItem('discord_user', JSON.stringify(userData));
+    }
   </script>
 </body>
 </html>
