@@ -5,9 +5,9 @@ const path = require('path');
 
 const app = express();
 
-// Configuration JSONBin.io
-const BIN_ID = "6a6bec81f5f4af5e29d80b84";
-const MASTER_KEY = "$2a$10$4QakocWzyo.QhFvScjsxXeXgsqEMnDvF4HHcLZtPWgrhRem/QURS.";
+// Configuration JSONBin.io (avec fallback sur vos clés actuelles)
+const BIN_ID = process.env.JSONBIN_BIN_ID || "6a6bec81f5f4af5e29d80b84";
+const MASTER_KEY = process.env.JSONBIN_MASTER_KEY || "$2a$10$4QakocWzyo.QhFvScjsxXeXgsqEMnDvF4HHcLZtPWgrhRem/QURS.";
 const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
 // 1. Désactiver la mise en cache pour forcer le navigateur à actualiser les pages
@@ -82,7 +82,12 @@ app.get('/auth/discord/callback', async (req, res) => {
       const dbResponse = await axios.get(API_URL, {
         headers: { 'X-Master-Key': MASTER_KEY }
       });
-      const organigramme = dbResponse.data.record?.organigramme || [];
+
+      const recordData = typeof dbResponse.data.record === 'string' 
+        ? JSON.parse(dbResponse.data.record) 
+        : dbResponse.data.record;
+
+      const organigramme = recordData?.organigramme || [];
       const agent = organigramme.find(a => String(a.discordId) === String(userId));
       
       if (agent && agent.intranetAccess) {
@@ -118,6 +123,7 @@ app.get('/api/discord-user/:id', async (req, res) => {
 
   try {
     let memberData = null;
+    let userRoleIds = [];
     let userRoleNames = [];
 
     // Étape 1 : Tenter de récupérer le membre directement sur le serveur (Guild)
@@ -127,6 +133,7 @@ app.get('/api/discord-user/:id', async (req, res) => {
         { headers: authHeader }
       );
       memberData = memberResponse.data;
+      userRoleIds = memberData.roles || [];
 
       // Récupération et association des rôles du serveur
       const rolesResponse = await axios.get(
@@ -135,7 +142,7 @@ app.get('/api/discord-user/:id', async (req, res) => {
       );
       const allRoles = rolesResponse.data;
 
-      userRoleNames = (memberData.roles || []).map(roleId => {
+      userRoleNames = userRoleIds.map(roleId => {
         const foundRole = allRoles.find(r => r.id === roleId);
         return foundRole ? foundRole.name : null;
       }).filter(Boolean);
@@ -225,7 +232,8 @@ app.get('/api/discord-user/:id', async (req, res) => {
       grade: grade,
       qualiteJudiciaire: qualiteJudiciaire,
       specialite: specialite,
-      roles: userRoleNames
+      roles: userRoleIds,
+      roleNames: userRoleNames
     });
 
   } catch (error) {

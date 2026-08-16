@@ -6,14 +6,15 @@
   <title>Connexion - Intranet Sécurisé</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Configuration du fond d'écran plein écran avec le lien direct GitHub en .png */
+    /* Configuration du fond d'écran plein écran avec couleur de repli */
     body {
+      background-color: #0f172a;
       background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), 
                         url('https://raw.githubusercontent.com/Walker25TV/Armurerie/principal/Images/ftsi.png');
-      background-size: cover;      /* L'image recouvre TOUT l'écran sans déformation */
-      background-position: center;  /* L'image est centrée */
-      background-repeat: no-repeat; /* Empêche la répétition */
-      background-attachment: fixed; /* L'image reste fixe */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
     }
   </style>
 </head>
@@ -50,16 +51,26 @@
       
       <div class="space-y-1">
         <div class="flex items-center justify-center space-x-2 text-blue-400 font-semibold text-sm mb-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
           <span>Authentification Requise</span>
         </div>
         <p class="text-xs text-gray-300">Connexion requise via compte Discord autorisé</p>
         <p class="text-[10px] text-gray-400">Protocole OAuth2 — Chiffrement SSL/TLS</p>
       </div>
 
+      <!-- Zone d'affichage dynamique des erreurs de connexion -->
+      <div id="error-box" class="hidden w-full bg-red-950/80 border border-red-500/50 p-3 rounded-lg text-left text-xs text-red-200">
+        <p class="font-bold text-red-400 mb-0.5" id="error-title">Erreur d'accès</p>
+        <p id="error-message">Une erreur est survenue lors de la connexion.</p>
+      </div>
+
       <!-- Bouton de connexion Discord -->
       <a href="/auth/discord" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 text-sm">
-        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.011c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.011c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+        </svg>
         <span>Connexion avec Discord</span>
       </a>
 
@@ -85,19 +96,42 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     
+    // 1. Traitement des erreurs d'authentification envoyées par le serveur
+    const errorCode = urlParams.get('error');
+    if (errorCode) {
+      const errorBox = document.getElementById('error-box');
+      const errorMsg = document.getElementById('error-message');
+      
+      if (errorCode === 'not_authorized') {
+        errorMsg.innerText = "Accès refusé : Votre compte Discord ne possède pas le rôle requis ou n'est pas habilité dans l'organigramme.";
+      } else if (errorCode === 'not_in_guild') {
+        errorMsg.innerText = "Accès refusé : Vous devez faire partie du serveur Discord officiel.";
+      } else if (errorCode === 'no_code') {
+        errorMsg.innerText = "Échec de l'authentification : Aucun code de validation reçu.";
+      }
+      
+      if (errorBox) errorBox.classList.remove('hidden');
+    }
+
+    // 2. Synchronisation de la session utilisateur
     const nom = urlParams.get('nom');
     const prenom = urlParams.get('prenom');
     const grade = urlParams.get('grade');
     const qualification = urlParams.get('qualification');
+    const discordId = urlParams.get('discord_id');
+    const roles = urlParams.get('roles');
+
+    if (discordId) sessionStorage.setItem('discord_id', discordId);
+    if (roles) sessionStorage.setItem('discord_roles', roles);
 
     if (nom || prenom || grade || qualification) {
-        const userData = {
-            nom: nom || "WALKER",
-            prenom: prenom || "Chris",
-            grade: grade || "CAPITAINE STAGIAIRE",
-            qualite: qualification || "Officier de Police Judiciaire"
-        };
-        sessionStorage.setItem('discord_user', JSON.stringify(userData));
+      const userData = {
+        nom: nom || "WALKER",
+        prenom: prenom || "Chris",
+        grade: grade || "CAPITAINE STAGIAIRE",
+        qualite: qualification || "Officier de Police Judiciaire"
+      };
+      sessionStorage.setItem('discord_user', JSON.stringify(userData));
     }
   </script>
 </body>
