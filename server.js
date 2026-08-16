@@ -69,6 +69,9 @@ app.get('/auth/discord/callback', async (req, res) => {
     const userId = memberResponse.data.user.id;
     const userRoles = memberResponse.data.roles || [];
 
+    // Extraction du Nom / Surnom Discord de l'utilisateur
+    const userDisplayName = memberResponse.data.nick || memberResponse.data.user.global_name || memberResponse.data.user.username;
+
     // Identifiants des rôles autorisés sur l'intranet
     const ROLE_POLICE_NATIONALE = "1521576237493915789";
     const ROLE_COMMANDEMENT = "1521576207299383386";
@@ -99,7 +102,10 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     if (hasAdminRole || isAuthorizedInDb) {
       const rolesParam = encodeURIComponent(JSON.stringify(userRoles));
-      return res.redirect(`/index.html?auth=success&discord_id=${userId}&roles=${rolesParam}`);
+      const pseudoParam = encodeURIComponent(userDisplayName);
+
+      // Redirection incluant le pseudo pour éviter le fallback "INCONNU Agent"
+      return res.redirect(`/index.html?auth=success&discord_id=${userId}&pseudo=${pseudoParam}&roles=${rolesParam}`);
     } else {
       return res.redirect('/?error=not_authorized');
     }
