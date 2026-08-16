@@ -10,12 +10,12 @@ const ordreGrades = [
   "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
 ];
 
-// 2. MAPPING OPTIONNEL DES ROLES DISCORD (ID du Rôle -> Grade & Qualification)
+// 2. Mapping optionnel des rôles
 const roleMapping = {
   "1521576207299383386": { grade: "Capitaine-Stagiaire", qualif: "Officier de Police Judiciaire" }
 };
 
-// 3. Fonction pour récupérer et nettoyer les rôles de l'utilisateur
+// 3. Récupération des rôles Discord
 function getUserRoles() {
   const rawRoles = urlParamsScript.get('roles') || sessionStorage.getItem('discord_roles') || "[]";
   try {
@@ -29,72 +29,12 @@ function getUserRoles() {
 
 const userRoles = getUserRoles();
 
-// 4. Détection automatique du grade
-function detectGradeFromRoles(rolesList) {
-  const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
-  if (urlGrade) return urlGrade;
-
-  for (const roleId of rolesList) {
-    if (roleMapping[roleId] && roleMapping[roleId].grade) {
-      return roleMapping[roleId].grade;
-    }
-  }
-
-  for (const grade of ordreGrades) {
-    const found = rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''));
-    if (found) return grade;
-  }
-  
-  return "Capitaine-Stagiaire"; 
-}
-
-const dynamicGrade = detectGradeFromRoles(userRoles);
-
-// 5. Détection automatique de la Qualification Judiciaire (OPJ pour les officiers/commandement)
-function detectQualification(rolesList, grade) {
-  const urlQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif');
-  if (urlQualif) return urlQualif;
-
-  for (const roleId of rolesList) {
-    if (roleMapping[roleId] && roleMapping[roleId].qualif) {
-      return roleMapping[roleId].qualif;
-    }
-  }
-
-  const gradesOPJ = [
-    "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
-    "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine"
-  ];
-
-  if (gradesOPJ.includes(grade)) {
-    return "Officier de Police Judiciaire";
-  }
-
-  return "Agent de Police Judiciaire";
-}
-
-const dynamicQualif = detectQualification(userRoles, dynamicGrade);
-
-// 6. Nettoyage du pseudo Discord
-function parseDiscordPseudo(rawPseudo) {
-  if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
-  const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
-  const parts = cleanPseudo.split(/\s+/);
-  return {
-    nom: (parts[0] || "INCONNU").toUpperCase(),
-    prenom: parts.slice(1).join(' ') || "Agent"
-  };
-}
-
-const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "";
-let parsedPseudo = parseDiscordPseudo(rawPseudoInput);
-
-let rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
-let rawPrenom = urlParamsScript.get('prenom') || sessionStorage.getItem('discord_prenom') || sessionStorage.getItem('user_prenom') || parsedPseudo.prenom;
-
-let formattedNom = rawNom.toUpperCase();
-let formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
-let fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
+// Variables globales de l'utilisateur
+let dynamicGrade = "Agent";
+let dynamicQualif = "Agent de Police Judiciaire";
+let formattedNom = "INCONNU";
+let formattedPrenom = "Agent";
+let fullNameFormatted = "INCONNU Agent";
 
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
@@ -137,6 +77,71 @@ let orgIndexToDelete = null;
 
 let dbData = { armurerie: {}, organigramme: [] };
 
+// 4. Nettoyage du pseudo Discord
+function parseDiscordPseudo(rawPseudo) {
+  if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
+  const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
+  const parts = cleanPseudo.split(/\s+/);
+  return {
+    nom: (parts[0] || "INCONNU").toUpperCase(),
+    prenom: parts.slice(1).join(' ') || "Agent"
+  };
+}
+
+// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme
+function syncUserDataWithOrganigramme() {
+  let matchedAgent = null;
+
+  // Recherche par ID Discord dans la liste organigramme
+  if (currentDiscordId && dbData.organigramme) {
+    matchedAgent = dbData.organigramme.find(a => String(a.discordId) === String(currentDiscordId));
+  }
+
+  if (matchedAgent) {
+    // Agent trouvé dans l'organigramme
+    formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
+    formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
+    dynamicGrade = matchedAgent.grade || "Agent";
+    dynamicQualif = matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
+  } else {
+    // Si absent de l'organigramme, repli sur l'URL / les Rôles
+    const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || "";
+    const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
+    
+    formattedNom = (urlParamsScript.get('nom') || parsedPseudo.nom).toUpperCase();
+    formattedPrenom = urlParamsScript.get('prenom') || parsedPseudo.prenom;
+    dynamicGrade = detectGradeFromRoles(userRoles);
+    dynamicQualif = detectQualificationFromGrade(dynamicGrade);
+  }
+
+  fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
+  updateUI();
+}
+
+function detectGradeFromRoles(rolesList) {
+  const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade');
+  if (urlGrade) return urlGrade;
+
+  for (const roleId of rolesList) {
+    if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
+  }
+
+  for (const grade of ordreGrades) {
+    if (rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+      return grade;
+    }
+  }
+  return "Capitaine-Stagiaire";
+}
+
+function detectQualificationFromGrade(grade) {
+  const gradesOPJ = [
+    "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
+    "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine"
+  ];
+  return gradesOPJ.includes(grade) ? "Officier de Police Judiciaire" : "Agent de Police Judiciaire";
+}
+
 function updateUI() {
   if (document.getElementById('sidebar-user-name')) document.getElementById('sidebar-user-name').innerText = fullNameFormatted;
   if (document.getElementById('sidebar-user-grade')) document.getElementById('sidebar-user-grade').innerText = dynamicGrade.toUpperCase();
@@ -156,26 +161,6 @@ function updateUI() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  updateUI();
-
-  // Si le pseudo n'est pas présent dans l'URL mais qu'un ID Discord est fourni, interrogation de l'API backend
-  if (currentDiscordId && (formattedNom === "INCONNU" || rawPseudoInput === "")) {
-    try {
-      const res = await fetch(`/api/discord-user/${currentDiscordId}`);
-      const data = await res.json();
-      if (data && data.displayName) {
-        const parsed = parseDiscordPseudo(data.displayName);
-        formattedNom = parsed.nom;
-        formattedPrenom = parsed.prenom;
-        fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
-        sessionStorage.setItem('discord_pseudo', data.displayName);
-        updateUI();
-      }
-    } catch (e) {
-      console.error("Erreur de récupération du pseudo Discord:", e);
-    }
-  }
-
   const navArm = document.getElementById('nav-armurerie');
   const navCmd = document.getElementById('nav-commandement');
   if (hasArmurerieRole || hasCommandementRole) { if (navArm) navArm.classList.remove('hidden'); }
@@ -194,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
   setupCustomSelect();
-  loadData();
+  await loadData();
 });
 
 function switchView(viewName) {
@@ -217,6 +202,10 @@ async function loadData() {
     if (!res.ok) throw new Error("Erreur");
     const json = await res.json();
     if (json.record) { dbData = json.record; }
+    
+    // Synchronisation automatique de l'utilisateur avec l'organigramme chargé
+    syncUserDataWithOrganigramme();
+    
     updateArmurerieCounts();
     renderOrganigrammeTable();
   } catch (e) { console.error(e); }
