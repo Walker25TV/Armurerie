@@ -124,7 +124,7 @@ function detectGradeFromRoles(rolesList) {
   }
 
   for (const grade of ordreGrades) {
-    if (rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+    if (rolesList.some(r => String(r).toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
       return grade;
     }
   }
@@ -283,7 +283,7 @@ function openAddAgentModal() {
 }
 function closeAddAgentModal() { document.getElementById('add-agent-modal').classList.add('hidden'); }
 
-// CORRECTION MAJEURE : Récupération et affichage de toutes les données Discord
+// CORRECTION OPTIMISÉE : Récupération et affichage complet des données Discord
 async function fetchDiscordData() {
   const idInput = document.getElementById('modal-input-discord');
   if (!idInput) return;
@@ -295,14 +295,19 @@ async function fetchDiscordData() {
     const data = await res.json();
     if (!data.success) return alert(data.message || "Utilisateur introuvable.");
 
-    const parsed = parseDiscordPseudo(data.displayName);
+    const parsed = parseDiscordPseudo(data.displayName || data.username || "");
+
+    // Recherche automatique du grade et de la qualification si non spécifiés explicitement
+    const rolesDetected = data.roles || [];
+    const gradeDetecte = data.grade && data.grade !== "Non défini" ? data.grade : detectGradeFromRoles(rolesDetected);
+    const qualifDetectee = data.qualiteJudiciaire || data.qualif || detectQualificationFromGrade(gradeDetecte);
 
     tempDiscordAgent = {
       discordId: id,
       nom: parsed.nom,
       prenom: parsed.prenom,
-      grade: data.grade || "Non défini",
-      qualiteJudiciaire: data.qualiteJudiciaire || "Aucune",
+      grade: gradeDetecte,
+      qualiteJudiciaire: qualifDetectee,
       specialite: data.specialite || "Aucune"
     };
 
@@ -312,7 +317,7 @@ async function fetchDiscordData() {
     const elQJ = document.getElementById('modal-preview-qj');
     const elSpe = document.getElementById('modal-preview-spe');
 
-    if (elName) elName.innerText = `${tempDiscordAgent.nom} ${tempDiscordAgent.prenom}`;
+    if (elName) elName.innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
     if (elGrade) elGrade.innerText = tempDiscordAgent.grade;
     if (elQJ) elQJ.innerText = tempDiscordAgent.qualiteJudiciaire;
     if (elSpe) elSpe.innerText = tempDiscordAgent.specialite;
@@ -350,21 +355,26 @@ async function submitAddAgent() {
   closeAddAgentModal();
 }
 
-// CORRECTION MAJEURE : Affichage complet du tableau des agents avec actions (Supprimer / Modifier)
+// CORRECTION MAJEURE : Affichage et mise à jour du compteur + de la table d'organigramme
 function renderOrganigrammeTable() {
   const tbody = document.getElementById('org-table-body');
-  const countBadge = document.getElementById('total-agents-count') || document.getElementById('agents-count');
+  const total = (dbData.organigramme && Array.isArray(dbData.organigramme)) ? dbData.organigramme.length : 0;
   
-  if (countBadge) {
-    const total = dbData.organigramme ? dbData.organigramme.length : 0;
-    countBadge.innerText = `${total} agent${total > 1 ? 's' : ''}`;
+  // Mise à jour de tous les conteneurs de compteurs
+  const countBadges = document.querySelectorAll('#total-agents-count, #agents-count, .agents-registered-count');
+  countBadges.forEach(el => el.innerText = total);
+
+  // Recherche automatique du bloc de compteur ("AGENTS ENREGISTRÉS 0")
+  const counterBox = document.querySelector('.bg-white .text-3xl, .bg-white .text-2xl');
+  if (counterBox) {
+    counterBox.innerText = total;
   }
 
   if (!tbody) return;
   tbody.innerHTML = '';
 
   if (!dbData.organigramme || dbData.organigramme.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-500">Aucun agent dans l'organigramme.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-gray-500">Aucun agent dans l'organigramme.</td></tr>`;
     return;
   }
 
@@ -372,23 +382,24 @@ function renderOrganigrammeTable() {
     const icon = gradeIcons[agent.grade];
     tbody.innerHTML += `
       <tr class="border-b hover:bg-gray-50 text-sm">
-        <td class="py-3 px-6 font-bold text-gray-900 uppercase">${agent.nom || ''} ${agent.prenom || ''}</td>
-        <td class="py-3 px-6">
+        <td class="py-3.5 px-6 font-bold text-gray-900 uppercase">${agent.nom || ''} ${agent.prenom || ''}</td>
+        <td class="py-3.5 px-6">
           <div class="flex items-center space-x-2">
             ${icon ? `<img src="${icon}" class="w-5 h-5 object-contain">` : ''}
             <span>${agent.grade || '—'}</span>
           </div>
         </td>
-        <td class="py-3 px-6">${agent.qualiteJudiciaire || agent.qualif || '—'}</td>
-        <td class="py-3 px-6">${agent.specialite || '—'}</td>
-        <td class="py-3 px-6 font-mono text-xs">${agent.rio || '—'}</td>
-        <td class="py-3 px-6">
-          <span class="px-2 py-1 rounded text-xs font-bold ${agent.status === 'ACTIF' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+        <td class="py-3.5 px-6 font-mono text-xs">${agent.rio || '—'}</td>
+        <td class="py-3.5 px-6">${agent.qualiteJudiciaire || agent.qualif || '—'}</td>
+        <td class="py-3.5 px-6">${agent.specialite || '—'}</td>
+        <td class="py-3.5 px-6 font-mono text-xs">${agent.phone || '0000000'}</td>
+        <td class="py-3.5 px-6">
+          <span class="px-2 py-1 rounded text-xs font-bold ${agent.status === 'ACTIF' ? 'bg-red-50 text-red-600' : 'bg-red-100 text-red-800'}">
             ${agent.status || 'ACTIF'}
           </span>
         </td>
-        <td class="py-3 px-6 text-right space-x-2">
-          <button onclick="deleteOrgAgent(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase">Supprimer</button>
+        <td class="py-3.5 px-6 text-right">
+          <button onclick="deleteOrgAgent(${index})" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-wider">SUPPRIMER</button>
         </td>
       </tr>
     `;
