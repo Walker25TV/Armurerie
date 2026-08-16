@@ -355,22 +355,54 @@
           </div>
         </div>
 
-        <div class="bg-gray-50 p-4 rounded border border-gray-100 grid grid-cols-2 gap-4">
-          <div>
-            <span class="block text-[10px] font-bold text-gray-400 uppercase">PRÉNOM & NOM</span>
-            <span id="modal-preview-name" class="text-sm font-black text-gray-900">—</span>
+        <!-- BLOC DE PRÉVISUALISATION / ÉDITION MANUELLE -->
+        <div class="bg-gray-50 p-4 rounded border border-gray-200 relative">
+          <div class="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">INFORMATIONS IMPORTÉES</span>
+            <button type="button" id="modal-btn-toggle-edit" onclick="toggleModalEditMode()" class="text-xs font-bold text-blue-900 hover:text-blue-700 flex items-center space-x-1 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              <span id="modal-edit-btn-text">Modifier</span>
+            </button>
           </div>
-          <div>
-            <span class="block text-[10px] font-bold text-gray-400 uppercase">GRADE</span>
-            <span id="modal-preview-grade" class="text-sm font-black text-blue-900">—</span>
+
+          <!-- Mode Affichage (Lecture Seule) -->
+          <div id="modal-read-only-view" class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="block text-[10px] font-bold text-gray-400 uppercase">PRÉNOM & NOM</span>
+              <span id="modal-preview-name" class="text-sm font-black text-gray-900">—</span>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold text-gray-400 uppercase">GRADE</span>
+              <span id="modal-preview-grade" class="text-sm font-black text-blue-900">—</span>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold text-gray-400 uppercase">QUALITÉ JUDICIAIRE</span>
+              <span id="modal-preview-qualif" class="text-sm font-black text-gray-900">—</span>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold text-gray-400 uppercase">SPÉCIALITÉ</span>
+              <span id="modal-preview-service" class="text-sm font-black text-gray-900">—</span>
+            </div>
           </div>
-          <div>
-            <span class="block text-[10px] font-bold text-gray-400 uppercase">QUALITÉ JUDICIAIRE</span>
-            <span id="modal-preview-qualif" class="text-sm font-black text-gray-900">—</span>
-          </div>
-          <div>
-            <span class="block text-[10px] font-bold text-gray-400 uppercase">SPÉCIALITÉ</span>
-            <span id="modal-preview-service" class="text-sm font-black text-gray-900">—</span>
+
+          <!-- Mode Édition (Formulaire masqué par défaut) -->
+          <div id="modal-edit-view" class="grid grid-cols-2 gap-3 hidden">
+            <div>
+              <label for="modal-input-name" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Prénom & Nom</label>
+              <input type="text" id="modal-input-name" placeholder="Prénom Nom" class="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-900">
+            </div>
+            <div>
+              <label for="modal-input-grade" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Grade</label>
+              <input type="text" id="modal-input-grade" placeholder="Grade" class="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900">
+            </div>
+            <div>
+              <label for="modal-input-qualif" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Qualité Judiciaire</label>
+              <input type="text" id="modal-input-qualif" placeholder="ex: OPJ" class="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-900">
+            </div>
+            <div>
+              <label for="modal-input-service" class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Spécialité</label>
+              <input type="text" id="modal-input-service" placeholder="ex: BAC" class="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-900">
+            </div>
           </div>
         </div>
 
@@ -440,8 +472,50 @@
     </div>
   </div>
 
-  <!-- Script d'injection dynamique des informations de l'agent connecté -->
+  <!-- Script d'injection dynamique et logique d'édition manuelle -->
   <script>
+    let isModalEditing = false;
+
+    function toggleModalEditMode() {
+      const readView = document.getElementById('modal-read-only-view');
+      const editView = document.getElementById('modal-edit-view');
+      const btnText = document.getElementById('modal-edit-btn-text');
+
+      const nameRead = document.getElementById('modal-preview-name');
+      const gradeRead = document.getElementById('modal-preview-grade');
+      const qualifRead = document.getElementById('modal-preview-qualif');
+      const serviceRead = document.getElementById('modal-preview-service');
+
+      const nameInput = document.getElementById('modal-input-name');
+      const gradeInput = document.getElementById('modal-input-grade');
+      const qualifInput = document.getElementById('modal-input-qualif');
+      const serviceInput = document.getElementById('modal-input-service');
+
+      isModalEditing = !isModalEditing;
+
+      if (isModalEditing) {
+        // Transfert des données affichées vers la saisie
+        nameInput.value = nameRead.textContent === '—' ? '' : nameRead.textContent;
+        gradeInput.value = gradeRead.textContent === '—' ? '' : gradeRead.textContent;
+        qualifInput.value = qualifRead.textContent === '—' ? '' : qualifRead.textContent;
+        serviceInput.value = serviceRead.textContent === '—' ? '' : serviceRead.textContent;
+
+        readView.classList.add('hidden');
+        editView.classList.remove('hidden');
+        btnText.textContent = 'Valider';
+      } else {
+        // Enregistrement des modifications vers la vue lecture
+        nameRead.textContent = nameInput.value.trim() || '—';
+        gradeRead.textContent = gradeInput.value.trim() || '—';
+        qualifRead.textContent = qualifInput.value.trim() || '—';
+        serviceRead.textContent = serviceInput.value.trim() || '—';
+
+        editView.classList.add('hidden');
+        readView.classList.remove('hidden');
+        btnText.textContent = 'Modifier';
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       const storedUser = sessionStorage.getItem('discord_user');
       if (storedUser) {
