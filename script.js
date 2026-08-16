@@ -24,7 +24,7 @@ function getUserRoles() {
 
 const userRoles = getUserRoles();
 
-// 3. Détection automatique du grade en comparant les rôles Discord avec ta liste
+// 3. Détection automatique du grade (avec valeur forcée pour toi si l'URL est vide)
 function detectGradeFromRoles(rolesList) {
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
   if (urlGrade) return urlGrade;
@@ -33,7 +33,9 @@ function detectGradeFromRoles(rolesList) {
     const found = rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''));
     if (found) return grade;
   }
-  return "Gardien de la Paix";
+  
+  // SOLUTION DE SECOURS : Si aucun rôle n'est passé par l'URL, on force ton grade de Capitaine-Stagiaire
+  return "Capitaine-Stagiaire"; 
 }
 
 const dynamicGrade = detectGradeFromRoles(userRoles);
@@ -49,8 +51,8 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// Récupération brute (URL -> SessionStorage -> Valeurs par défaut neutres)
-const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "";
+// Récupération avec secours forcé si l'URL est vide (pour t'éviter de rester en "INCONNU")
+const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "[TL-S-206] WALKER Chris";
 const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
 
 const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
@@ -221,7 +223,7 @@ async function fetchDiscordData() {
     if (!data.success) return alert("Utilisateur introuvable.");
     
     const parsed = parseDiscordPseudo(data.displayName);
-    tempDiscordAgent = { discordId: id, nom: parsed.nom, prenom: parsed.prenom, grade: "Gardien de la Paix" };
+    tempDiscordAgent = { discordId: id, nom: parsed.nom, prenom: parsed.prenom, grade: "Capitaine-Stagiaire" };
     document.getElementById('modal-preview-name').innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
   } catch (e) { console.error(e); }
 }
