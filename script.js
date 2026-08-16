@@ -1,7 +1,44 @@
 // ==================== RECUPERATION DES INFORMATIONS DISCORD ET UTILS ====================
 const urlParamsScript = new URLSearchParams(window.location.search);
 
-// Fonction pour nettoyer le pseudo Discord (ex: "[TL-S-206] WALKER Chris" -> Nom: WALKER, Prénom: Chris)
+// 1. Liste des grades dans l'ordre hiérarchique exact
+const ordreGrades = [
+  "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police",
+  "Elève Commissaire", "Commandant Divisionnaire", "Commandant", "Capitaine",
+  "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine", "Major Exceptionnel",
+  "Major", "Brigadier-Chef", "Brigadier", "Sous-Brigadier",
+  "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
+];
+
+// 2. Fonction pour récupérer et nettoyer les rôles de l'utilisateur
+function getUserRoles() {
+  const rawRoles = urlParamsScript.get('roles') || sessionStorage.getItem('discord_roles') || "[]";
+  try {
+    const parsed = JSON.parse(rawRoles);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch (e) {
+    if (typeof rawRoles === 'string') return rawRoles.split(',').map(r => r.trim());
+  }
+  return [];
+}
+
+const userRoles = getUserRoles();
+
+// 3. Détection automatique du grade en comparant les rôles Discord avec ta liste
+function detectGradeFromRoles(rolesList) {
+  const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
+  if (urlGrade) return urlGrade;
+
+  for (const grade of ordreGrades) {
+    const found = rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    if (found) return grade;
+  }
+  return "Gardien de la Paix";
+}
+
+const dynamicGrade = detectGradeFromRoles(userRoles);
+
+// 4. Fonction pour nettoyer le pseudo Discord (ex: "[TL-S-206] WALKER Chris" -> Nom: WALKER, Prénom: Chris)
 function parseDiscordPseudo(rawPseudo) {
   if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
   const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
@@ -23,35 +60,14 @@ const formattedNom = rawNom.toUpperCase();
 const formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
 const fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
 
-const dynamicGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade') || "Gardien de la Paix";
 const dynamicQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif') || "Agent de Police Judiciaire";
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
 const ROLE_ARMURERIE = "1521576291722330354";
 const ROLE_COMMANDEMENT = "1521576207299383386";
 
-function getUserRoles() {
-  const rawRoles = urlParamsScript.get('roles') || sessionStorage.getItem('discord_roles') || "[]";
-  try {
-    const parsed = JSON.parse(rawRoles);
-    if (Array.isArray(parsed)) return parsed.map(String);
-  } catch (e) {
-    if (typeof rawRoles === 'string') return rawRoles.split(',').map(r => r.trim());
-  }
-  return [];
-}
-
-const userRoles = getUserRoles();
 const hasArmurerieRole = userRoles.includes(ROLE_ARMURERIE) || urlParamsScript.get('role_armurerie') === 'true';
 const hasCommandementRole = userRoles.includes(ROLE_COMMANDEMENT) || urlParamsScript.get('role_commandement') === 'true';
-
-const ordreGrades = [
-  "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police",
-  "Elève Commissaire", "Commandant Divisionnaire", "Commandant", "Capitaine",
-  "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine", "Major Exceptionnel",
-  "Major", "Brigadier-Chef", "Brigadier", "Sous-Brigadier",
-  "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
-];
 
 const gradeIcons = {
   "Commissaire Général": "Images/grades/COMG.png",
@@ -204,7 +220,6 @@ async function fetchDiscordData() {
     const data = await res.json();
     if (!data.success) return alert("Utilisateur introuvable.");
     
-    // Utilisation de la fonction de nettoyage automatique des crochets
     const parsed = parseDiscordPseudo(data.displayName);
     tempDiscordAgent = { discordId: id, nom: parsed.nom, prenom: parsed.prenom, grade: "Gardien de la Paix" };
     document.getElementById('modal-preview-name').innerText = `${tempDiscordAgent.prenom} ${tempDiscordAgent.nom}`;
