@@ -10,7 +10,15 @@ const ordreGrades = [
   "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
 ];
 
-// 2. Fonction pour récupérer et nettoyer les rôles de l'utilisateur
+// 2. MAPPING OPTIONNEL DES ROLES DISCORD (ID du Rôle -> Grade & Qualification)
+// Remplace ou ajoute ici les IDs de tes rôles Discord si tu souhaites une détection automatique sans paramètre URL
+const roleMapping = {
+  "1521576207299383386": { grade: "Capitaine-Stagiaire", qualif: "Agent de Police Judiciaire" },
+  // Exemple d'un autre rôle :
+  // "ID_ROLE_GARDIEN": { grade: "Gardien de la Paix", qualif: "Agent de Police Judiciaire Adjoint" }
+};
+
+// 3. Fonction pour récupérer et nettoyer les rôles de l'utilisateur
 function getUserRoles() {
   const rawRoles = urlParamsScript.get('roles') || sessionStorage.getItem('discord_roles') || "[]";
   try {
@@ -24,23 +32,48 @@ function getUserRoles() {
 
 const userRoles = getUserRoles();
 
-// 3. Détection automatique du grade (avec valeur de secours sécurisée)
+// 4. Détection automatique du grade
 function detectGradeFromRoles(rolesList) {
+  // Priorité 1 : Transmis directement dans l'URL ou le storage
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade') || sessionStorage.getItem('user_grade');
   if (urlGrade) return urlGrade;
 
+  // Priorité 2 : Détection via le mapping d'IDs
+  for (const roleId of rolesList) {
+    if (roleMapping[roleId] && roleMapping[roleId].grade) {
+      return roleMapping[roleId].grade;
+    }
+  }
+
+  // Priorité 3 : Recherche par nom de grade dans la liste des rôles
   for (const grade of ordreGrades) {
     const found = rolesList.some(r => r.toLowerCase().replace(/[^a-z0-9]/g, '') === grade.toLowerCase().replace(/[^a-z0-9]/g, ''));
     if (found) return grade;
   }
   
-  // Valeur de secours par défaut si l'URL est vide
-  return "Capitaine-Stagiaire"; 
+  // Secours neutre par défaut si aucun grade n'est transmis ni détecté
+  return "Agent"; 
 }
 
 const dynamicGrade = detectGradeFromRoles(userRoles);
 
-// 4. Fonction pour nettoyer le pseudo Discord (ex: "[TL-S-206] WALKER Chris" -> Nom: WALKER, Prénom: Chris)
+// 5. Détection de la Qualification Judiciaire
+function detectQualification(rolesList) {
+  const urlQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif');
+  if (urlQualif) return urlQualif;
+
+  for (const roleId of rolesList) {
+    if (roleMapping[roleId] && roleMapping[roleId].qualif) {
+      return roleMapping[roleId].qualif;
+    }
+  }
+
+  return "Agent de Police Judiciaire";
+}
+
+const dynamicQualif = detectQualification(userRoles);
+
+// 6. Parsing du pseudo Discord
 function parseDiscordPseudo(rawPseudo) {
   if (!rawPseudo) return { nom: "INCONNU", prenom: "Agent" };
   const cleanPseudo = rawPseudo.replace(/\[.*?\]/g, '').trim();
@@ -51,8 +84,8 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// Récupération avec secours forcé si l'URL est totalement vide
-const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "[TL-S-206] WALKER Chris";
+// Extraction dynamique du nom et prénom (sans forcer de nom fixe en cas d'accès direct)
+const rawPseudoInput = urlParamsScript.get('pseudo') || sessionStorage.getItem('discord_pseudo') || sessionStorage.getItem('user_pseudo') || "";
 const parsedPseudo = parseDiscordPseudo(rawPseudoInput);
 
 const rawNom = urlParamsScript.get('nom') || sessionStorage.getItem('discord_nom') || sessionStorage.getItem('user_nom') || parsedPseudo.nom;
@@ -62,7 +95,6 @@ const formattedNom = rawNom.toUpperCase();
 const formattedPrenom = rawPrenom.charAt(0).toUpperCase() + rawPrenom.slice(1).toLowerCase();
 const fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
 
-const dynamicQualif = urlParamsScript.get('qualification') || sessionStorage.getItem('discord_qualif') || sessionStorage.getItem('user_qualif') || "Agent de Police Judiciaire";
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
 const ROLE_ARMURERIE = "1521576291722330354";
