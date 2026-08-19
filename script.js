@@ -3,7 +3,7 @@ const urlParamsScript = new URLSearchParams(window.location.search);
 
 // 1. Liste des grades dans l'ordre hiérarchique exact
 const ordreGrades = [
-  "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police",
+  "Commissaire", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police",
   "Elève Commissaire", "Commandant Divisionnaire", "Commandant", "Capitaine",
   "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine", "Major Exceptionnel",
   "Major", "Brigadier-Chef", "Brigadier", "Sous-Brigadier",
@@ -45,6 +45,7 @@ const hasArmurerieRole = userRoles.includes(ROLE_ARMURERIE) || urlParamsScript.g
 const hasCommandementRole = userRoles.includes(ROLE_COMMANDEMENT) || urlParamsScript.get('role_commandement') === 'true';
 
 const gradeIcons = {
+  "Commissaire": "Images/grades/Comissaire De Police.png",
   "Commissaire Général": "Images/grades/COMG.png",
   "Commissaire Divisionnaire": "Images/grades/Commissaire Divisionnaire.png",
   "Commissaire de Police": "Images/grades/Comissaire De Police.png",
@@ -169,7 +170,7 @@ function detectGradeFromRoles(rolesList) {
 
 function detectQualificationFromGrade(grade) {
   const gradesOPJ = [
-    "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
+    "Commissaire", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
     "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine"
   ];
   return gradesOPJ.includes(grade) ? "Officier de Police Judiciaire" : "Agent de Police Judiciaire";
