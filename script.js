@@ -104,7 +104,7 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme
+// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme (Avec priorité Discord)
 function syncUserDataWithOrganigramme() {
   let matchedAgent = null;
 
@@ -125,18 +125,15 @@ function syncUserDataWithOrganigramme() {
     }
   }
 
+  // Détection prioritaire basée sur les rôles réels de Discord
   const roleDetectedGrade = detectGradeFromRoles(userRoles);
 
   if (matchedAgent) {
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
     
-    if (roleDetectedGrade && roleDetectedGrade !== "Sous-Brigadier" && matchedAgent.grade === "Capitaine") {
-      dynamicGrade = roleDetectedGrade;
-    } else {
-      dynamicGrade = matchedAgent.grade || roleDetectedGrade;
-    }
-
+    // LE RÔLE DISCORD PREND LE DESSUS ABSOLU SUR L'ORGANIGRAMME
+    dynamicGrade = roleDetectedGrade || matchedAgent.grade;
     dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   } else {
     formattedNom = searchNom;
@@ -157,15 +154,11 @@ function detectGradeFromRoles(rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
   }
 
-  // CORRECTION : On parcoure l'ordre hiérarchique strict (du plus haut au plus bas)
-  // pour s'assurer que si un utilisateur a plusieurs rôles, le grade le plus haut l'emporte,
-  // et on évite qu'un rôle subordonné (comme Sous-Brigadier) n'écrase un grade supérieur (comme Lieutenant).
   for (const grade of ordreGrades) {
     const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
     for (const role of rolesList) {
       const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
       
-      // Vérification exacte ou découpage par mots pour éviter les faux positifs (ex: "sous-brigadier" dans "brigadier")
       const roleWords = roleClean.split(/[\s\-_|]+/);
       const gradeWords = gradeClean.split(/[\s\-_|]+/);
 
@@ -182,7 +175,6 @@ function detectGradeFromRoles(rolesList) {
 }
 
 function detectQualificationFromRolesAndGrade(rolesList, grade) {
-  // Parcours des rôles pour identifier précisément la qualification judiciaire portée
   for (const role of rolesList) {
     const roleStr = String(role).toLowerCase();
     if (roleStr.includes('officier de police judiciaire')) {
@@ -196,7 +188,6 @@ function detectQualificationFromRolesAndGrade(rolesList, grade) {
     }
   }
 
-  // Fallback de secours par défaut si aucun rôle textuel n'est trouvé
   const gradesOPJ = [
     "Directeur Général", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
     "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine",
