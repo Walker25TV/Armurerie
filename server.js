@@ -59,18 +59,45 @@ app.get('/auth/discord/callback', async (req, res) => {
     });
 
     const accessToken = tokenResponse.data.access_token;
+    const tokenType = tokenResponse.data.token_type || 'Bearer';
 
-    // Récupération du profil membre dans le serveur Discord (Guild)
-    const memberResponse = await axios.get(
-      `https://discord.com/api/v10/users/@me/guilds/${process.env.GUILD_ID}/member`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    // A. Récupérer l'identité de l'utilisateur connecté
+    const userResponse = await axios.get('https://discord.com/api/v10/users/@me', {
+      headers: { Authorization: `${tokenType} ${accessToken}` }
+    });
+    const userId = userResponse.data.id;
+    let userDisplayName = userResponse.data.global_name || userResponse.data.username;
 
-    const userId = memberResponse.data.user.id;
-    const userRoles = memberResponse.data.roles || [];
+    // B. Récupérer la liste des serveurs de l'utilisateur pour valider qu'il est bien dedans
+    const guildsResponse = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+      headers: { Authorization: `${tokenType} ${accessToken}` }
+    });
 
-    // Extraction du Nom / Surnom Discord de l'utilisateur
-    const userDisplayName = memberResponse.data.nick || memberResponse.data.user.global_name || memberResponse.data.user.username;
+    const guilds = guildsResponse.data;
+    const isInGuild = guilds.some(g => String(g.id) === String(process.env.GUILD_ID));
+
+    if (!isInGuild) {
+      return res.redirect('/?error=not_in_guild');
+    }
+
+    // C. Récupérer les rôles et le pseudo sur le serveur via le BOT (plus fiable)
+    const botToken = process.env.DISCORD_BOT_TOKEN || process.env.BOT_TOKEN;
+    let userRoles = [];
+
+    if (botToken) {
+      try {
+        const memberResponse = await axios.get(
+          `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${userId}`,
+          { headers: { Authorization: `Bot ${botToken.trim()}` } }
+        );
+        userRoles = memberResponse.data.roles || [];
+        if (memberResponse.data.nick) {
+          userDisplayName = memberResponse.data.nick;
+        }
+      } catch (botErr) {
+        console.warn("Impossible de récupérer les rôles via le bot lors du callback :", botErr.message);
+      }
+    }
 
     // Identifiants des rôles autorisés sur l'intranet
     const ROLE_POLICE_NATIONALE = "1521576237493915789";
