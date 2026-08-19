@@ -25,10 +25,8 @@ const ordreGrades = [
   "Policier Adjoint"
 ];
 
-// 2. Mapping optionnel des rôles
-const roleMapping = {
-  "1521576207299383386": { grade: "Capitaine-Stagiaire", qualif: "Officier de Police Judiciaire" }
-};
+// 2. Mapping optionnel des rôles (nettoyé pour éviter d'imposer un grade statique bloquant)
+const roleMapping = {};
 
 // 3. Récupération des rôles Discord
 function getUserRoles() {
