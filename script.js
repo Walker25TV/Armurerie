@@ -157,14 +157,22 @@ function detectGradeFromRoles(rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
   }
 
-  const gradesTries = [...ordreGrades].sort((a, b) => b.length - a.length);
+  // CORRECTION : On parcoure l'ordre hiérarchique strict (du plus haut au plus bas)
+  // pour s'assurer que si un utilisateur a plusieurs rôles, le grade le plus haut l'emporte,
+  // et on évite qu'un rôle subordonné (comme Sous-Brigadier) n'écrase un grade supérieur (comme Lieutenant).
+  for (const grade of ordreGrades) {
+    const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
+    for (const role of rolesList) {
+      const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
+      
+      // Vérification exacte ou découpage par mots pour éviter les faux positifs (ex: "sous-brigadier" dans "brigadier")
+      const roleWords = roleClean.split(/[\s\-_|]+/);
+      const gradeWords = gradeClean.split(/[\s\-_|]+/);
 
-  for (const role of rolesList) {
-    const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
+      const matchExact = roleClean === gradeClean || roleClean.includes(gradeClean);
+      const matchWords = gradeWords.every(gw => roleWords.includes(gw));
 
-    for (const grade of gradesTries) {
-      const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
-      if (roleClean.includes(gradeClean)) {
+      if (matchExact || matchWords) {
         return grade;
       }
     }
