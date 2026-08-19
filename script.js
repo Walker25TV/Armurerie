@@ -51,13 +51,9 @@ let fullNameFormatted = "INCONNU Agent";
 
 const currentDiscordId = urlParamsScript.get('discord_id') || sessionStorage.getItem('discord_id');
 
-// Constantes des Rôles Discord
-const ROLE_PN = "1521576237493915789";
 const ROLE_ARMURERIE = "1521576291722330354";
 const ROLE_COMMANDEMENT = "1521576207299383386";
 
-// Vérification des droits (rôles Discord ou paramètres URL pour les tests)
-const hasPN = userRoles.includes(ROLE_PN) || urlParamsScript.get('role_pn') === 'true';
 const hasArmurerieRole = userRoles.includes(ROLE_ARMURERIE) || urlParamsScript.get('role_armurerie') === 'true';
 const hasCommandementRole = userRoles.includes(ROLE_COMMANDEMENT) || urlParamsScript.get('role_commandement') === 'true';
 
@@ -223,13 +219,9 @@ function updateUI() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const navOrg = document.getElementById('nav-organigramme');
   const navArm = document.getElementById('nav-armurerie');
   const navCmd = document.getElementById('nav-commandement');
-
-  // Gestion de la visibilité des sections selon les rôles Discord
-  if (hasPN) { if (navOrg) navOrg.classList.remove('hidden'); }
-  if (hasArmurerieRole) { if (navArm) navArm.classList.remove('hidden'); }
+  if (hasArmurerieRole || hasCommandementRole) { if (navArm) navArm.classList.remove('hidden'); }
   if (hasCommandementRole) { if (navCmd) navCmd.classList.remove('hidden'); }
 
   const confirmBtn = document.getElementById('confirm-delete-btn');
