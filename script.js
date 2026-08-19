@@ -1,13 +1,28 @@
 // ==================== RECUPERATION DES INFORMATIONS DISCORD ET UTILS ====================
 const urlParamsScript = new URLSearchParams(window.location.search);
 
-// 1. Liste des grades dans l'ordre hiérarchique exact
+// 1. Liste des grades dans l'ordre hiérarchique exact (sans le corps de conception et de direction)
 const ordreGrades = [
-  "Commissaire", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police",
-  "Elève Commissaire", "Commandant Divisionnaire", "Commandant", "Capitaine",
-  "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine", "Major Exceptionnel",
-  "Major", "Brigadier-Chef", "Brigadier", "Sous-Brigadier",
-  "Gardien de la Paix", "Gardien de la Paix Stagiaire", "Elève Gardien de la Paix", "Policier Adjoint"
+  "Directeur Général",
+  "Commissaire Général",
+  "Commissaire Divisionnaire",
+  "Commissaire de Police",
+  "Elève Commissaire",
+  "Commandant Divisionnaire",
+  "Commandant",
+  "Capitaine",
+  "Lieutenant",
+  "Capitaine-Stagiaire",
+  "Elève-Capitaine",
+  "Major Exceptionnel",
+  "Major",
+  "Brigadier-Chef",
+  "Brigadier",
+  "Sous-Brigadier",
+  "Gardien de la Paix",
+  "Gardien de la Paix Stagiaire",
+  "Elève Gardien de la Paix",
+  "Policier Adjoint"
 ];
 
 // 2. Mapping optionnel des rôles
@@ -45,7 +60,7 @@ const hasArmurerieRole = userRoles.includes(ROLE_ARMURERIE) || urlParamsScript.g
 const hasCommandementRole = userRoles.includes(ROLE_COMMANDEMENT) || urlParamsScript.get('role_commandement') === 'true';
 
 const gradeIcons = {
-  "Commissaire": "Images/grades/Comissaire De Police.png",
+  "Directeur Général": "Images/grades/Comissaire De Police.png",
   "Commissaire Général": "Images/grades/COMG.png",
   "Commissaire Divisionnaire": "Images/grades/Commissaire Divisionnaire.png",
   "Commissaire de Police": "Images/grades/Comissaire De Police.png",
@@ -68,7 +83,7 @@ const gradeIcons = {
 };
 
 let tempDiscordAgent = null;
-let editingOrgAgentIndex = null; // Stocke l'index en cas de modification d'un agent existant
+let editingOrgAgentIndex = null;
 
 const BIN_ID = "6a6bec81f5f4af5e29d80b84";
 const MASTER_KEY = "$2a$10$4QakocWzyo.QhFvScjsxXeXgsqEMnDvF4HHcLZtPWgrhRem/QURS.";
@@ -101,11 +116,9 @@ function syncUserDataWithOrganigramme() {
   const searchPrenom = (urlParamsScript.get('prenom') || parsedPseudo.prenom).toLowerCase();
 
   if (dbData.organigramme && dbData.organigramme.length > 0) {
-    // 1. Recherche par ID Discord
     if (currentDiscordId) {
       matchedAgent = dbData.organigramme.find(a => String(a.discordId) === String(currentDiscordId));
     }
-    // 2. Recherche par Nom / Prénom si non trouvé par ID
     if (!matchedAgent && searchNom) {
       matchedAgent = dbData.organigramme.find(a => 
         (a.nom || '').toUpperCase() === searchNom && 
@@ -114,27 +127,24 @@ function syncUserDataWithOrganigramme() {
     }
   }
 
-  // Si l'agent est trouvé dans l'organigramme, on vérifie si son grade en base correspond à un ancien grade 
-  // alors qu'un rôle Discord plus précis existe (ex: Capitaine-Stagiaire vs Capitaine)
   const roleDetectedGrade = detectGradeFromRoles(userRoles);
 
   if (matchedAgent) {
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
     
-    // Si le rôle Discord détecte un grade spécifique (comme Capitaine-Stagiaire), on priorise le rôle Discord sur la base si l'organigramme a un grade obsolète
     if (roleDetectedGrade && roleDetectedGrade !== "Sous-Brigadier" && matchedAgent.grade === "Capitaine") {
       dynamicGrade = roleDetectedGrade;
     } else {
       dynamicGrade = matchedAgent.grade || roleDetectedGrade;
     }
 
-    dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromGrade(dynamicGrade);
+    dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   } else {
     formattedNom = searchNom;
     formattedPrenom = searchPrenom.charAt(0).toUpperCase() + searchPrenom.slice(1);
     dynamicGrade = roleDetectedGrade;
-    dynamicQualif = detectQualificationFromGrade(dynamicGrade);
+    dynamicQualif = detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   }
 
   fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
@@ -145,16 +155,13 @@ function detectGradeFromRoles(rolesList) {
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade');
   if (urlGrade) return urlGrade;
 
-  // 1. Vérification par ID de rôle mappé
   for (const roleId of rolesList) {
     if (roleMapping[roleId] && roleMapping[roleId].grade) return roleMapping[roleId].grade;
   }
 
-  // 2. Tri par longueur décroissante pour tester "Capitaine-Stagiaire" ou "Elève-Capitaine" AVANT "Capitaine"
   const gradesTries = [...ordreGrades].sort((a, b) => b.length - a.length);
 
   for (const role of rolesList) {
-    // CORRECTION : Conserver le tiret (-) pour ne pas casser "Capitaine-Stagiaire"
     const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
 
     for (const grade of gradesTries) {
@@ -168,10 +175,26 @@ function detectGradeFromRoles(rolesList) {
   return "Sous-Brigadier";
 }
 
-function detectQualificationFromGrade(grade) {
+function detectQualificationFromRolesAndGrade(rolesList, grade) {
+  // Parcours des rôles pour identifier précisément la qualification judiciaire portée
+  for (const role of rolesList) {
+    const roleStr = String(role).toLowerCase();
+    if (roleStr.includes('officier de police judiciaire')) {
+      return "Officier de Police Judiciaire";
+    }
+    if (roleStr.includes('agent de police judiciaire adjoint')) {
+      return "Agent de Police Judiciaire Adjoint";
+    }
+    if (roleStr.includes('agent de police judiciaire')) {
+      return "Agent de Police Judiciaire";
+    }
+  }
+
+  // Fallback de secours par défaut si aucun rôle textuel n'est trouvé
   const gradesOPJ = [
-    "Commissaire", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
-    "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine"
+    "Directeur Général", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
+    "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine",
+    "Major Exceptionnel", "Major"
   ];
   return gradesOPJ.includes(grade) ? "Officier de Police Judiciaire" : "Agent de Police Judiciaire";
 }
@@ -200,7 +223,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (hasArmurerieRole || hasCommandementRole) { if (navArm) navArm.classList.remove('hidden'); }
   if (hasCommandementRole) { if (navCmd) navCmd.classList.remove('hidden'); }
 
-  // Bouton de confirmation de suppression d'arme
   const confirmBtn = document.getElementById('confirm-delete-btn');
   if (confirmBtn) {
     confirmBtn.addEventListener('click', () => {
@@ -214,7 +236,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Bouton de confirmation de suppression d'agent de l'organigramme
   const orgConfirmBtn = document.getElementById('org-confirm-delete-btn');
   if (orgConfirmBtn) {
     orgConfirmBtn.addEventListener('click', async () => {
@@ -328,7 +349,6 @@ function renderWeaponTable() {
   });
 }
 
-// Ajout d'une arme à un agent depuis le formulaire d'armurerie
 async function handleAddAgent(event) {
   event.preventDefault();
   const grade = document.getElementById('input-grade').value;
@@ -347,7 +367,6 @@ async function handleAddAgent(event) {
   dbData.armurerie[currentWeapon].push({ grade, nom, prenom, serie });
   await saveData();
 
-  // Reinitialisation des champs du formulaire
   document.getElementById('input-nom').value = '';
   document.getElementById('input-prenom').value = '';
   document.getElementById('input-serie').value = '';
@@ -366,7 +385,6 @@ function openAddAgentModal() {
   tempDiscordAgent = null;
   editingOrgAgentIndex = null;
   
-  // Remise à zéro de l'affichage d'édition si nécessaire
   if (typeof isModalEditing !== 'undefined' && isModalEditing) {
     if (typeof toggleModalEditMode === 'function') toggleModalEditMode();
   }
@@ -385,11 +403,9 @@ function openAddAgentModal() {
 
 function closeAddAgentModal() { document.getElementById('add-agent-modal').classList.add('hidden'); }
 
-// Modals de suppression organigramme
 function openOrgDeleteModal(index) { orgIndexToDelete = index; document.getElementById('org-delete-modal').classList.remove('hidden'); }
 function closeOrgDeleteModal() { orgIndexToDelete = null; document.getElementById('org-delete-modal').classList.add('hidden'); }
 
-// Récupération et affichage complet des données Discord
 async function fetchDiscordData(event) {
   if (event) event.preventDefault();
   const idInput = document.getElementById('modal-input-discord');
@@ -406,7 +422,7 @@ async function fetchDiscordData(event) {
 
     const rolesDetected = data.roles || [];
     const gradeDetecte = data.grade && data.grade !== "Non défini" ? data.grade : detectGradeFromRoles(rolesDetected);
-    const qualifDetectee = data.qualiteJudiciaire || data.qualif || detectQualificationFromGrade(gradeDetecte);
+    const qualifDetectee = data.qualiteJudiciaire || data.qualif || detectQualificationFromRolesAndGrade(rolesDetected, gradeDetecte);
 
     tempDiscordAgent = {
       discordId: id,
@@ -417,7 +433,6 @@ async function fetchDiscordData(event) {
       specialite: data.specialite || "Aucune"
     };
 
-    // Mise à jour des éléments visuels et des champs de saisie
     const elName = document.getElementById('modal-preview-name');
     const elGrade = document.getElementById('modal-preview-grade');
     const elQualif = document.getElementById('modal-preview-qualif');
@@ -444,7 +459,6 @@ async function fetchDiscordData(event) {
   }
 }
 
-// Fonction pour éditer un agent existant depuis le tableau
 function editOrgAgent(index) {
   const agent = dbData.organigramme[index];
   if (!agent) return;
@@ -454,7 +468,6 @@ function editOrgAgent(index) {
 
   openAddAgentModal();
 
-  // Remplissage des champs de la modale avec les données de l'agent
   const idInput = document.getElementById('modal-input-discord');
   if (idInput) idInput.value = agent.discordId || "";
 
@@ -479,11 +492,9 @@ function editOrgAgent(index) {
   if (intranetInput) intranetInput.checked = agent.intranetAccess !== false;
 }
 
-// Validation de l'ajout / modification d'un agent dans l'organigramme
 async function handleModalAddOrgAgent(event) {
   event.preventDefault();
 
-  // Lecture des valeurs éditables si le mode d'édition manuelle est ouvert
   const nameInput = document.getElementById('modal-input-name')?.value.trim();
   const gradeInput = document.getElementById('modal-input-grade')?.value.trim();
   const qualifInput = document.getElementById('modal-input-qualif')?.value.trim();
@@ -495,7 +506,6 @@ async function handleModalAddOrgAgent(event) {
   let finalQualif = tempDiscordAgent ? tempDiscordAgent.qualiteJudiciaire : "";
   let finalSpecialite = tempDiscordAgent ? tempDiscordAgent.specialite : "Aucune";
 
-  // Si des valeurs manuelles ont été saisies
   if (nameInput) {
     const parts = nameInput.split(/\s+/);
     finalPrenom = parts[0] || "";
@@ -540,7 +550,6 @@ async function handleModalAddOrgAgent(event) {
   closeAddAgentModal();
 }
 
-// Affichage et mise à jour de la table d'organigramme (trié par ordre hiérarchique)
 function renderOrganigrammeTable() {
   const tbody = document.getElementById('org-table-body');
   const total = (dbData.organigramme && Array.isArray(dbData.organigramme)) ? dbData.organigramme.length : 0;
@@ -556,13 +565,11 @@ function renderOrganigrammeTable() {
     return;
   }
 
-  // Association des agents avec leur index d'origine pour conserver le ciblage des boutons
   const agentsWithOriginalIndex = dbData.organigramme.map((agent, index) => ({
     agent,
     originalIndex: index
   }));
 
-  // Tri hiérarchique basé sur l'index du grade dans `ordreGrades`
   agentsWithOriginalIndex.sort((a, b) => {
     let indexA = ordreGrades.indexOf(a.agent.grade);
     let indexB = ordreGrades.indexOf(b.agent.grade);
@@ -574,7 +581,6 @@ function renderOrganigrammeTable() {
       return indexA - indexB;
     }
 
-    // Tri alphabétique secondaire par Nom puis Prénom en cas de même grade
     const nomA = (a.agent.nom || '').toUpperCase();
     const nomB = (b.agent.nom || '').toUpperCase();
     if (nomA !== nomB) return nomA.localeCompare(nomB);
