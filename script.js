@@ -62,6 +62,7 @@ const gradeIcons = {
   "Commissaire Général": "Images/grades/COMG.png",
   "Commissaire Divisionnaire": "Images/grades/Commissaire Divisionnaire.png",
   "Commissaire de Police": "Images/grades/Comissaire De Police.png",
+  "Commissaire": "Images/grades/Comissaire De Police.png",
   "Elève Commissaire": "Images/grades/Élève Comissaire.png",
   "Commandant Divisionnaire": "Images/grades/Commandant Divisionnaire.png",
   "Commandant": "Images/grades/Commandant De Police.png",
@@ -104,7 +105,7 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme (Priorité Organigramme puis URL/Discord)
+// 5. Recherche et synchronisation : LE RÔLE DISCORD / URL PREND LE DESSUS ABSOLU
 function syncUserDataWithOrganigramme() {
   let matchedAgent = null;
 
@@ -128,18 +129,18 @@ function syncUserDataWithOrganigramme() {
   const roleDetectedGrade = detectGradeFromRoles(userRoles);
   const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade');
 
+  // Le grade détecté par Discord ou l'URL est prioritaire, sinon l'organigramme, sinon par défaut
+  dynamicGrade = roleDetectedGrade || urlGrade || (matchedAgent ? matchedAgent.grade : null) || "Gardien de la Paix";
+  
+  // La qualification judiciaire priorise les rôles, puis l'organigramme, puis la règle par défaut du grade
+  dynamicQualif = detectQualificationFromRolesAndGrade(userRoles, dynamicGrade) || (matchedAgent ? (matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification) : null) || "Agent de Police Judiciaire";
+
   if (matchedAgent) {
-    formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
-    formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
-    
-    // L'organigramme prend le dessus pour éviter que tout le monde devienne "Sous-Brigadier" par défaut, sinon on prend le rôle
-    dynamicGrade = matchedAgent.grade || roleDetectedGrade || urlGrade || "Gardien de la Paix";
-    dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
+    formattedNom = (matchedAgent.nom || searchNom).toUpperCase();
+    formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : searchPrenom;
   } else {
     formattedNom = searchNom;
     formattedPrenom = searchPrenom.charAt(0).toUpperCase() + searchPrenom.slice(1);
-    dynamicGrade = urlGrade || roleDetectedGrade || "Gardien de la Paix";
-    dynamicQualif = detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   }
 
   fullNameFormatted = `${formattedNom} ${formattedPrenom}`;
@@ -188,7 +189,7 @@ function detectQualificationFromRolesAndGrade(rolesList, grade) {
   }
 
   const gradesOPJ = [
-    "Directeur Général", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Elève Commissaire",
+    "Directeur Général", "Commissaire Général", "Commissaire Divisionnaire", "Commissaire de Police", "Commissaire", "Elève Commissaire",
     "Commandant Divisionnaire", "Commandant", "Capitaine", "Lieutenant", "Capitaine-Stagiaire", "Elève-Capitaine",
     "Major Exceptionnel", "Major"
   ];
@@ -571,11 +572,19 @@ function renderOrganigrammeTable() {
   }));
 
   agentsWithOriginalIndex.sort((a, b) => {
-    let indexA = ordreGrades.indexOf(a.agent.grade);
-    let indexB = ordreGrades.indexOf(b.agent.grade);
+    const getGradeIndex = (gradeStr) => {
+      if (!gradeStr) return 999;
+      const cleanG = gradeStr.toLowerCase().trim();
+      
+      let idx = ordreGrades.findIndex(g => g.toLowerCase() === cleanG);
+      if (idx !== -1) return idx;
 
-    if (indexA === -1) indexA = 999;
-    if (indexB === -1) indexB = 999;
+      idx = ordreGrades.findIndex(g => cleanG.includes(g.toLowerCase()) || g.toLowerCase().includes(cleanG));
+      return idx !== -1 ? idx : 999;
+    };
+
+    let indexA = getGradeIndex(a.agent.grade);
+    let indexB = getGradeIndex(b.agent.grade);
 
     if (indexA !== indexB) {
       return indexA - indexB;
@@ -589,7 +598,7 @@ function renderOrganigrammeTable() {
   });
 
   agentsWithOriginalIndex.forEach(({ agent, originalIndex }) => {
-    const icon = gradeIcons[agent.grade];
+    const icon = gradeIcons[agent.grade] || gradeIcons["Commissaire de Police"];
     tbody.innerHTML += `
       <tr class="border-b hover:bg-gray-50 text-sm">
         <td class="py-3.5 px-6 font-bold text-gray-900 uppercase">${agent.nom || ''} ${agent.prenom || ''}</td>
@@ -633,7 +642,7 @@ function setupCustomSelect() {
       const selectedText = document.getElementById('selected-grade-text');
       if (selectedText) {
         selectedText.innerText = g;
-        selectedTest.classList.remove('text-gray-500');
+        selectedText.classList.remove('text-gray-500');
       }
       optionsDiv.classList.add('hidden'); 
     };
