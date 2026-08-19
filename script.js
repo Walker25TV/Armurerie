@@ -43,7 +43,7 @@ function getUserRoles() {
 const userRoles = getUserRoles();
 
 // Variables globales de l'utilisateur
-let dynamicGrade = "Agent";
+let dynamicGrade = "Gardien de la Paix";
 let dynamicQualif = "Agent de Police Judiciaire";
 let formattedNom = "INCONNU";
 let formattedPrenom = "Agent";
@@ -104,7 +104,7 @@ function parseDiscordPseudo(rawPseudo) {
   };
 }
 
-// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme (Avec priorité Discord)
+// 5. Recherche et synchronisation des données utilisateur depuis l'Organigramme (Priorité Organigramme puis URL/Discord)
 function syncUserDataWithOrganigramme() {
   let matchedAgent = null;
 
@@ -125,20 +125,20 @@ function syncUserDataWithOrganigramme() {
     }
   }
 
-  // Détection prioritaire basée sur les rôles réels de Discord
   const roleDetectedGrade = detectGradeFromRoles(userRoles);
+  const urlGrade = urlParamsScript.get('grade') || sessionStorage.getItem('discord_grade');
 
   if (matchedAgent) {
     formattedNom = (matchedAgent.nom || "INCONNU").toUpperCase();
     formattedPrenom = matchedAgent.prenom ? matchedAgent.prenom.charAt(0).toUpperCase() + matchedAgent.prenom.slice(1).toLowerCase() : "Agent";
     
-    // LE RÔLE DISCORD PREND LE DESSUS ABSOLU SUR L'ORGANIGRAMME
-    dynamicGrade = roleDetectedGrade || matchedAgent.grade;
+    // L'organigramme prend le dessus pour éviter que tout le monde devienne "Sous-Brigadier" par défaut, sinon on prend le rôle
+    dynamicGrade = matchedAgent.grade || roleDetectedGrade || urlGrade || "Gardien de la Paix";
     dynamicQualif = matchedAgent.qualiteJudiciaire || matchedAgent.qualif || matchedAgent.qualification || detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   } else {
     formattedNom = searchNom;
     formattedPrenom = searchPrenom.charAt(0).toUpperCase() + searchPrenom.slice(1);
-    dynamicGrade = roleDetectedGrade;
+    dynamicGrade = urlGrade || roleDetectedGrade || "Gardien de la Paix";
     dynamicQualif = detectQualificationFromRolesAndGrade(userRoles, dynamicGrade);
   }
 
@@ -158,7 +158,6 @@ function detectGradeFromRoles(rolesList) {
     const gradeClean = grade.toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
     for (const role of rolesList) {
       const roleClean = String(role).toLowerCase().replace(/[^a-z0-9à-ÿ-]/g, '');
-      
       const roleWords = roleClean.split(/[\s\-_|]+/);
       const gradeWords = gradeClean.split(/[\s\-_|]+/);
 
@@ -171,7 +170,7 @@ function detectGradeFromRoles(rolesList) {
     }
   }
 
-  return "Sous-Brigadier";
+  return null;
 }
 
 function detectQualificationFromRolesAndGrade(rolesList, grade) {
@@ -206,11 +205,15 @@ function updateUI() {
   if (document.getElementById('qualification-judiciaire')) document.getElementById('qualification-judiciaire').innerText = dynamicQualif;
 
   const iconUrl = gradeIcons[dynamicGrade];
+  const sbIcon = document.getElementById('sidebar-user-grade-icon');
+  const pIcon = document.getElementById('profile-grade-icon');
+  
   if (iconUrl) {
-    const sbIcon = document.getElementById('sidebar-user-grade-icon');
-    const pIcon = document.getElementById('profile-grade-icon');
     if (sbIcon) { sbIcon.src = iconUrl; sbIcon.classList.remove('hidden'); }
     if (pIcon) { pIcon.src = iconUrl; pIcon.classList.remove('hidden'); }
+  } else {
+    if (sbIcon) sbIcon.classList.add('hidden');
+    if (pIcon) pIcon.classList.add('hidden');
   }
 }
 
@@ -418,7 +421,7 @@ async function fetchDiscordData(event) {
     const parsed = parseDiscordPseudo(data.displayName || data.username || "");
 
     const rolesDetected = data.roles || [];
-    const gradeDetecte = data.grade && data.grade !== "Non défini" ? data.grade : detectGradeFromRoles(rolesDetected);
+    const gradeDetecte = data.grade && data.grade !== "Non défini" ? data.grade : (detectGradeFromRoles(rolesDetected) || "Gardien de la Paix");
     const qualifDetectee = data.qualiteJudiciaire || data.qualif || detectQualificationFromRolesAndGrade(rolesDetected, gradeDetecte);
 
     tempDiscordAgent = {
@@ -499,8 +502,8 @@ async function handleModalAddOrgAgent(event) {
 
   let finalNom = tempDiscordAgent ? tempDiscordAgent.nom : "";
   let finalPrenom = tempDiscordAgent ? tempDiscordAgent.prenom : "";
-  let finalGrade = tempDiscordAgent ? tempDiscordAgent.grade : "";
-  let finalQualif = tempDiscordAgent ? tempDiscordAgent.qualiteJudiciaire : "";
+  let finalGrade = tempDiscordAgent ? tempDiscordAgent.grade : "Gardien de la Paix";
+  let finalQualif = tempDiscordAgent ? tempDiscordAgent.qualiteJudiciaire : "Agent de Police Judiciaire";
   let finalSpecialite = tempDiscordAgent ? tempDiscordAgent.specialite : "Aucune";
 
   if (nameInput) {
@@ -630,7 +633,7 @@ function setupCustomSelect() {
       const selectedText = document.getElementById('selected-grade-text');
       if (selectedText) {
         selectedText.innerText = g;
-        selectedText.classList.remove('text-gray-500');
+        selectedTest.classList.remove('text-gray-500');
       }
       optionsDiv.classList.add('hidden'); 
     };
